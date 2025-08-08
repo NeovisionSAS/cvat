@@ -15,15 +15,11 @@ import notification from 'antd/lib/notification';
 import debounce from 'lodash/debounce';
 
 import GlobalHotKeys, { KeyMap } from 'utils/mousetrap-react';
-import {
-    ColorBy, GridColor, Workspace, ActiveControl, CombinedState,
-} from 'reducers';
+import { ColorBy, GridColor, Workspace, ActiveControl, CombinedState } from 'reducers';
 import { EventScope } from 'cvat-logger';
 import { Canvas, HighlightSeverity, CanvasHint } from 'cvat-canvas-wrapper';
 import { Canvas3d } from 'cvat-canvas3d-wrapper';
-import {
-    AnnotationConflict, ObjectState, ObjectType, ShapeType, QualityConflict, getCore,
-} from 'cvat-core-wrapper';
+import { AnnotationConflict, ObjectState, ObjectType, ShapeType, QualityConflict, getCore } from 'cvat-core-wrapper';
 import config from 'config';
 import CVATTooltip from 'components/common/cvat-tooltip';
 import FrameTags from 'components/annotation-page/tag-annotation-workspace/frame-tags';
@@ -154,9 +150,7 @@ interface DispatchToProps {
 function mapStateToProps(state: CombinedState): StateToProps {
     const {
         annotation: {
-            canvas: {
-                activeControl, instance: canvasInstance, ready: canvasIsReady, activeObjectHidden,
-            },
+            canvas: { activeControl, instance: canvasInstance, ready: canvasIsReady, activeObjectHidden },
             drawing: { activeLabelID, activeObjectType },
             job: { instance: jobInstance },
             player: {
@@ -199,7 +193,14 @@ function mapStateToProps(state: CombinedState): StateToProps {
                 textContent,
             },
             shapes: {
-                opacity, colorBy, selectedOpacity, outlined, outlineColor, showBitmap, showProjections, showGroundTruth,
+                opacity,
+                colorBy,
+                selectedOpacity,
+                outlined,
+                outlineColor,
+                showBitmap,
+                showProjections,
+                showGroundTruth,
             },
             imageFilters,
         },
@@ -509,19 +510,22 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
         }
 
         if (prevProps.highlightedConflict !== highlightedConflict) {
-            const severity: HighlightSeverity | undefined = highlightedConflict
-                ?.severity as unknown as HighlightSeverity;
+            const severity: HighlightSeverity | undefined =
+                highlightedConflict?.severity as unknown as HighlightSeverity;
 
             const highlightedObjects = (highlightedConflict?.annotationConflicts || [])
-                .map((conflict: AnnotationConflict) => annotations
-                    .find((state) => state.serverID === conflict.serverID && state.objectType === conflict.type),
-                ).filter((state: ObjectState | undefined) => !!state) as ObjectState[];
+                .map((conflict: AnnotationConflict) =>
+                    annotations.find(
+                        (state) => state.serverID === conflict.serverID && state.objectType === conflict.type,
+                    ),
+                )
+                .filter((state: ObjectState | undefined) => !!state) as ObjectState[];
             const highlightedClientIDs = highlightedObjects.map((state) => state?.clientID) as number[];
 
-            const highlightedTags = highlightedObjects.some((state) => state?.objectType === ObjectType.TAG);
-            if (highlightedTags && prevProps.highlightedConflict) {
+            const higlightedTags = highlightedObjects.some((state) => state?.objectType === ObjectType.TAG);
+            if (higlightedTags && prevProps.highlightedConflict) {
                 canvasInstance.highlight([], null);
-            } else if (!highlightedTags) {
+            } else if (!higlightedTags) {
                 canvasInstance.highlight(highlightedClientIDs, severity || null);
             }
         }
@@ -548,8 +552,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
             saturationLevel !== prevProps.saturationLevel
         ) {
             canvasInstance.configure({
-                CSSImageFilter:
-                    `brightness(${brightnessLevel}) contrast(${contrastLevel}) saturate(${saturationLevel})`,
+                CSSImageFilter: `brightness(${brightnessLevel}) contrast(${contrastLevel}) saturate(${saturationLevel})`,
             });
         }
 
@@ -622,7 +625,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
         canvasInstance.html().removeEventListener('canvas.clicked', this.onCanvasShapeClicked);
         canvasInstance.html().removeEventListener('canvas.drawn', this.onCanvasShapeDrawn);
         canvasInstance.html().removeEventListener('canvas.merged', this.onCanvasObjectsMerged);
-        canvasInstance.html().removeEventListener('canvas.grouped', this.onCanvasObjectsGrouped);
+        canvasInstance.html().removeEventListener('canvas.groupped', this.onCanvasObjectsGroupped);
         canvasInstance.html().removeEventListener('canvas.joined', this.onCanvasObjectsJoined);
         canvasInstance.html().removeEventListener('canvas.regionselected', this.onCanvasPositionSelected);
         canvasInstance.html().removeEventListener('canvas.splitted', this.onCanvasTrackSplitted);
@@ -642,15 +645,22 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
         }
     };
 
-    private onCanvasMessage = (event: CustomEvent<{ messages: CanvasHint[] | null, topic: string }>): void => {
+    private onCanvasMessage = (event: CustomEvent<{ messages: CanvasHint[] | null; topic: string }>): void => {
         const { messages, topic } = event.detail;
         this.canvasTipsRef.current?.update(messages, topic);
     };
 
     private onCanvasShapeDrawn = (event: any): void => {
         const {
-            jobInstance, activeLabelID, activeObjectType, frame, updateActiveControl, onCreateAnnotations,
-            onUpdateEditedObject, activeObjectHidden, workspace,
+            jobInstance,
+            activeLabelID,
+            activeObjectType,
+            frame,
+            updateActiveControl,
+            onCreateAnnotations,
+            onUpdateEditedObject,
+            activeObjectHidden,
+            workspace,
         } = this.props;
 
         if (!event.detail.continue) {
@@ -660,8 +670,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
         const { state, duration } = event.detail;
         const isDrawnFromScratch = !state.label;
 
-        state.objectType = state.shapeType === ShapeType.MASK ?
-            ObjectType.SHAPE : state.objectType ?? activeObjectType;
+        state.objectType = state.shapeType === ShapeType.MASK ? ObjectType.SHAPE : state.objectType ?? activeObjectType;
         state.label = state.label || jobInstance.labels.filter((label: any) => label.id === activeLabelID)[0];
         state.frame = frame;
         state.rotation = state.rotation || 0;
@@ -671,8 +680,8 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
         if (state.shapeType === ShapeType.SKELETON && Array.isArray(state.elements)) {
             state.elements.forEach((element: Record<string, any>) => {
                 element.objectType = state.objectType;
-                element.label = element.label || state.label.structure
-                    .sublabels.find((label: any) => label.id === element.labelID);
+                element.label =
+                    element.label || state.label.structure.sublabels.find((label: any) => label.id === element.labelID);
                 element.frame = state.frame;
                 element.rotation = 0;
                 element.occluded = element.occluded || false;
@@ -692,9 +701,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
     };
 
     private onCanvasObjectsMerged = (event: any): void => {
-        const {
-            jobInstance, onMergeAnnotations, updateActiveControl,
-        } = this.props;
+        const { jobInstance, onMergeAnnotations, updateActiveControl } = this.props;
 
         updateActiveControl(ActiveControl.CURSOR);
         const { states, duration } = event.detail;
@@ -705,10 +712,8 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
         onMergeAnnotations(states);
     };
 
-    private onCanvasObjectsGrouped = (event: any): void => {
-        const {
-            jobInstance, onGroupAnnotations, updateActiveControl,
-        } = this.props;
+    private onCanvasObjectsGroupped = (event: any): void => {
+        const { jobInstance, onGroupAnnotations, updateActiveControl } = this.props;
 
         updateActiveControl(ActiveControl.CURSOR);
         const { states, duration } = event.detail;
@@ -720,9 +725,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
     };
 
     private onCanvasObjectsJoined = (event: any): void => {
-        const {
-            jobInstance, onJoinAnnotations, updateActiveControl,
-        } = this.props;
+        const { jobInstance, onJoinAnnotations, updateActiveControl } = this.props;
 
         updateActiveControl(ActiveControl.CURSOR);
         const { states, points, duration } = event.detail;
@@ -734,9 +737,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
     };
 
     private onCanvasTrackSplitted = (event: any): void => {
-        const {
-            jobInstance, onSplitAnnotations, updateActiveControl,
-        } = this.props;
+        const { jobInstance, onSplitAnnotations, updateActiveControl } = this.props;
 
         updateActiveControl(ActiveControl.CURSOR);
         const { state, duration } = event.detail;
@@ -772,21 +773,25 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
 
     private onCanvasShapeDragged = (e: CustomEvent<{ duration: number; state: ObjectState }>): void => {
         const { jobInstance } = this.props;
-        const { detail: { duration, state: { serverID } } } = e;
-        jobInstance.logger.log(
-            EventScope.dragObject,
-            { duration, ...(serverID ? { obj_id: serverID } : {}) },
-        );
+        const {
+            detail: {
+                duration,
+                state: { serverID },
+            },
+        } = e;
+        jobInstance.logger.log(EventScope.dragObject, { duration, ...(serverID ? { obj_id: serverID } : {}) });
     };
 
     private onCanvasShapeResized = (e: CustomEvent<{ duration: number; state: ObjectState }>): void => {
         const { jobInstance } = this.props;
-        const { detail: { duration, state: { serverID } } } = e;
+        const {
+            detail: {
+                duration,
+                state: { serverID },
+            },
+        } = e;
 
-        jobInstance.logger.log(
-            EventScope.resizeObject,
-            { duration, ...(serverID ? { obj_id: serverID } : {}) },
-        );
+        jobInstance.logger.log(EventScope.resizeObject, { duration, ...(serverID ? { obj_id: serverID } : {}) });
     };
 
     private onCanvasImageFitted = (): void => {
@@ -826,9 +831,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
     };
 
     private onCanvasCursorMoved = async (event: any): Promise<void> => {
-        const {
-            jobInstance, activatedStateID, activatedElementID, workspace, onActivateObject,
-        } = this.props;
+        const { jobInstance, activatedStateID, activatedElementID, workspace, onActivateObject } = this.props;
 
         if (![Workspace.STANDARD, Workspace.REVIEW, Workspace.SINGLE_SHAPE].includes(workspace)) {
             return;
@@ -856,9 +859,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
     };
 
     private onCanvasEditDone = (event: any): void => {
-        const {
-            activeControl, onUpdateAnnotations, updateActiveControl, onUpdateEditedObject,
-        } = this.props;
+        const { activeControl, onUpdateAnnotations, updateActiveControl, onUpdateEditedObject } = this.props;
         const { state, points, rotation } = event.detail;
         if (state.rotation !== rotation) {
             state.rotation = rotation;
@@ -934,13 +935,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
     };
 
     private activateOnCanvas(): void {
-        const {
-            activatedStateID,
-            activatedAttributeID,
-            aamZoomMargin,
-            workspace,
-            annotations,
-        } = this.props;
+        const { activatedStateID, activatedAttributeID, aamZoomMargin, workspace, annotations } = this.props;
         const { canvasInstance } = this.props as { canvasInstance: Canvas };
 
         if (activatedStateID !== null) {
@@ -961,10 +956,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
     }
 
     private updateCanvas(): void {
-        const {
-            curZLayer, annotations, frameData,
-            workspace, frame, imageFilters,
-        } = this.props;
+        const { curZLayer, annotations, frameData, workspace, frame, imageFilters } = this.props;
 
         const { canvasInstance } = this.props as { canvasInstance: Canvas };
         if (frameData !== null && canvasInstance) {
@@ -978,9 +970,9 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
                     if (prop === 'data') {
                         return async (...args: any[]) => {
                             const originalImage = await _frameData.data(...args);
-                            const imageIsNotProcessed = imageFilters.some((imageFilter: ImageFilter) => (
-                                imageFilter.modifier.currentProcessedImage !== frame
-                            ));
+                            const imageIsNotProcessed = imageFilters.some(
+                                (imageFilter: ImageFilter) => imageFilter.modifier.currentProcessedImage !== frame,
+                            );
 
                             if (imageIsNotProcessed) {
                                 try {
@@ -991,9 +983,11 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
                                     ctx.drawImage(imageBitmap, 0, 0);
                                     const imageData = ctx.getImageData(0, 0, renderWidth, renderHeight);
 
-                                    const newImageData = imageFilters
-                                        .reduce((oldImageData, activeImageModifier) => activeImageModifier
-                                            .modifier.processImage(oldImageData, frame), imageData);
+                                    const newImageData = imageFilters.reduce(
+                                        (oldImageData, activeImageModifier) =>
+                                            activeImageModifier.modifier.processImage(oldImageData, frame),
+                                        imageData,
+                                    );
                                     const newImageBitmap = await createImageBitmap(newImageData);
                                     return {
                                         renderWidth,
@@ -1015,25 +1009,13 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
                     return Reflect.get(_frameData, prop, receiver);
                 },
             });
-            canvasInstance.setup(
-                proxy,
-                frameData.deleted ? [] : filteredAnnotations,
-                curZLayer,
-            );
+            canvasInstance.setup(proxy, frameData.deleted ? [] : filteredAnnotations, curZLayer);
             canvasInstance.configure({ forceFrameUpdate: false });
         }
     }
 
     private initialSetup(): void {
-        const {
-            grid,
-            gridSize,
-            gridColor,
-            gridOpacity,
-            brightnessLevel,
-            contrastLevel,
-            saturationLevel,
-        } = this.props;
+        const { grid, gridSize, gridColor, gridOpacity, brightnessLevel, contrastLevel, saturationLevel } = this.props;
         const { canvasInstance } = this.props as { canvasInstance: Canvas };
 
         // Grid
@@ -1049,8 +1031,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
         canvasInstance.grid(gridSize, gridSize);
 
         canvasInstance.configure({
-            CSSImageFilter:
-                `brightness(${brightnessLevel}) contrast(${contrastLevel}) saturate(${saturationLevel})`,
+            CSSImageFilter: `brightness(${brightnessLevel}) contrast(${contrastLevel}) saturate(${saturationLevel})`,
         });
 
         canvasInstance.fitCanvas();
@@ -1086,7 +1067,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
         canvasInstance.html().addEventListener('canvas.clicked', this.onCanvasShapeClicked);
         canvasInstance.html().addEventListener('canvas.drawn', this.onCanvasShapeDrawn);
         canvasInstance.html().addEventListener('canvas.merged', this.onCanvasObjectsMerged);
-        canvasInstance.html().addEventListener('canvas.grouped', this.onCanvasObjectsGrouped);
+        canvasInstance.html().addEventListener('canvas.groupped', this.onCanvasObjectsGroupped);
         canvasInstance.html().addEventListener('canvas.joined', this.onCanvasObjectsJoined);
         canvasInstance.html().addEventListener('canvas.regionselected', this.onCanvasPositionSelected);
         canvasInstance.html().addEventListener('canvas.splitted', this.onCanvasTrackSplitted);
@@ -1129,13 +1110,11 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
             <>
                 <GlobalHotKeys keyMap={subKeyMap(componentShortcuts, keyMap)} handlers={handlers} />
                 <CanvasTipsComponent ref={this.canvasTipsRef} />
-                {
-                    !canvasIsReady && (
-                        <div className='cvat-spinner-container'>
-                            <Spin className='cvat-spinner' />
-                        </div>
-                    )
-                }
+                {!canvasIsReady && (
+                    <div className='cvat-spinner-container'>
+                        <Spin className='cvat-spinner' />
+                    </div>
+                )}
 
                 {/*
                     This element doesn't have any props

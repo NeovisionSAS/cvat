@@ -44,7 +44,7 @@ function TaskPageComponent(): JSX.Element {
     }), shallowEqual);
     const isTaskUpdating = updates[id] || jobsFetching;
 
-    const receiveTask = (): Promise<Task[]> => {
+    const receieveTask = (): Promise<Task[]> => {
         if (Number.isInteger(id)) {
             const promise = core.tasks.get({ id });
             promise.then(([task]: Task[]) => {
@@ -70,7 +70,7 @@ function TaskPageComponent(): JSX.Element {
     };
 
     useEffect(() => {
-        receiveTask().finally(() => {
+        receieveTask().finally(() => {
             setFetchingTask(false);
         });
         dispatch(getInferenceStatusAsync());

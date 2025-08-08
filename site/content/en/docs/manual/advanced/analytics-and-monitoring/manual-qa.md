@@ -10,9 +10,7 @@ In the demanding process of annotation, ensuring accuracy is paramount.
 CVAT introduces a specialized **Review mode**, designed to streamline the
 validation of annotations by pinpointing errors or discrepancies in annotation.
 
-{{% alert title="Note" color="primary" %}}
-The **Review mode** is not applicable for 3D tasks.
-{{% /alert %}}
+> **Note**: The **Review mode** is not applicable for 3D tasks.
 
 See:
 
@@ -35,9 +33,7 @@ Review mode is a user interface (UI) setting where a specialized
 **Issue** tool is available. This tool allows you to identify
 and describe issues with objects or areas within the frame.
 
-{{% alert title="Note" color="primary" %}}
-While in review mode, all other tools will be hidden.
-{{% /alert %}}
+> **Note:** While in review mode, all other tools will be hidden.
 
 **Review** mode screen looks like the following:
 
@@ -45,9 +41,7 @@ While in review mode, all other tools will be hidden.
 
 ### Assigning reviewer
 
-{{% alert title="Note" color="primary" %}}
-Reviewers can be assigned by project or task owner, assignee, and maintainer.
-{{% /alert %}}
+> **Note**: Reviewers can be assigned by project or task owner, assignee, and maintainer.
 
 To assign a reviewer to the job, do the following:
 
@@ -96,9 +90,7 @@ To create a **Quick issue** do the following:
 
 ### Assigning corrector
 
-{{% alert title="Note" color="primary" %}}
-Only project owners and maintainers can assign reviewers.
-{{% /alert %}}
+> **Note**: Only project owners and maintainers can assign reviewers.
 
 To assign a corrector to the job, do the following:
 
@@ -145,7 +137,7 @@ To correct annotation issues as a reviewer, do the following:
 3. In the top right corner, from the drop-down list,
    select **Standard**.
 
-   ![Change job status](/images/switch_to_standard_mode.jpg)
+   ![Change job status](/images/switch_to_standart_mode.jpg)
 
 ## Issues navigation and interface
 

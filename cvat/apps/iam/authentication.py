@@ -4,13 +4,11 @@
 
 import hashlib
 
-from allauth.account import app_settings as allauth_settings
-from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.core import signing
 from furl import furl
 from rest_framework import exceptions
-from rest_framework.authentication import BaseAuthentication, BasicAuthentication
+from rest_framework.authentication import BaseAuthentication
 
 
 # Got implementation ideas in https://github.com/marcgibbons/drf_signed_auth
@@ -74,19 +72,3 @@ class SignatureAuthentication(BaseAuthentication):
             raise exceptions.AuthenticationFailed("User inactive or deleted.")
 
         return (user, None)
-
-
-class BasicAuthenticationEx(BasicAuthentication):
-    def authenticate(self, request):
-        result = super().authenticate(request)
-
-        if (
-            allauth_settings.EMAIL_VERIFICATION
-            == allauth_settings.EmailVerificationMethod.MANDATORY
-            and result
-        ):
-            user = result[0]
-            if not EmailAddress.objects.is_verified(user.email):
-                raise exceptions.AuthenticationFailed("E-mail is not verified.")
-
-        return result

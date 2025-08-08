@@ -38,7 +38,7 @@ inside the polygon and choose `Switch pinned property`.
 
 Below you can see results with opacity and black stroke:
 
-![Example of annotation with applied opacity and black stroke](/images/image064_mapillary_vistas.jpg)
+![Exmaple of annotation with applied opacity and black stroke](/images/image064_mapillary_vistas.jpg)
 
 If you need to annotate small objects, increase `Image Quality` to
 `95` in `Create task` dialog for your convenience.

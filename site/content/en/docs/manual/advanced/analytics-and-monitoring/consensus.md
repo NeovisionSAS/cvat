@@ -8,15 +8,11 @@ description: 'Annotate the same data several times to get better annotations'
 With CVAT you can annotate the same data several times and then
 merge annotations automatically to obtain more reliable annotations.
 
-{{% alert title="Note" color="primary" %}}
-Consensus merging only supports 2D tasks.
-It supports all annotation types except cuboids.
-{{% /alert %}}
+> **Note** that consensus merging only supports 2D tasks.
+> It supports all annotation types except cuboids.
 
-{{% alert title="Note" color="primary" %}}
-Consensus merging is currently available only for tasks and jobs.
-Projects are not supported.
-{{% /alert %}}
+> **Note** that consensus merging is currently available only for tasks and jobs.
+> Projects are not supported.
 
 CVAT has the following features related to consensus-based annotation:
 - Creation of **consensus replica** jobs for regular annotation jobs in a task

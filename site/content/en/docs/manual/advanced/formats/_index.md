@@ -68,9 +68,7 @@ To export the dataset from the task, follow these steps:
 4. (Optional) Toggle the **Save images** switch if you
    wish to include images in the export.
 
-   {{% alert title="Note" color="primary" %}}
-   The **Save images** option is a **paid feature**.
-   {{% /alert %}}
+   > **Note**: The **Save images** option is a **paid feature**.
 
    ![Save images option](/images/export_job_as_dataset_dialog.png)
 
@@ -91,9 +89,7 @@ To export a dataset from Job follow these steps:
 3. (Optional) Toggle the **Save images** switch
    if you wish to include images in the export.
 
-   {{% alert title="Note" color="primary" %}}
-   The **Save images** option is a **paid feature**.
-   {{% /alert %}}
+   > **Note**: The **Save images** option is a **paid feature**.
 
    ![Save images option](/images/export_job_as_dataset_dialog.png)
 

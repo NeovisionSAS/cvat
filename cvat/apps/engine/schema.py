@@ -187,7 +187,7 @@ class ComponentProxySerializerExtension(OpenApiTypeProxySerializerExtension):
 class AnyOfProxySerializerExtension(ComponentProxySerializerExtension):
     """
     Replaces oneOf with anyOf in the generated schema. Useful when
-    no discriminator field is available, and the options are
+    no disciminator field is available, and the options are
     not mutually-exclusive.
     """
 

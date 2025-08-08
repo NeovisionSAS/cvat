@@ -17,7 +17,7 @@ import {
 export interface InteractionHandler {
     transform(geometry: Geometry): void;
     interact(interactData: InteractionData): void;
-    configure(config: Configuration): void;
+    configurate(config: Configuration): void;
     destroy(): void;
     cancel(): void;
 }
@@ -452,7 +452,7 @@ export class InteractionHandlerImpl implements InteractionHandler {
         }
     }
 
-    public configure(configuration: Configuration): void {
+    public configurate(configuration: Configuration): void {
         this.controlPointsSize = configuration.controlPointsSize;
         this.selectedShapeOpacity = configuration.selectedShapeOpacity;
 

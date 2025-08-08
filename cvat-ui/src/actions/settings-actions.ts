@@ -12,7 +12,7 @@ import {
 } from 'reducers';
 import { OrientationVisibility } from 'cvat-canvas3d-wrapper';
 import { ImageFilter, ImageFilterAlias, SerializedImageFilter } from 'utils/image-processing';
-import GammaCorrection, { GammaFilterOptions } from 'utils/fabric-wrapper/gamma-correction';
+import GammaCorrection, { GammaFilterOptions } from 'utils/fabric-wrapper/gamma-correciton';
 import { resolveConflicts } from 'utils/conflict-detector';
 import { shortcutsActions } from './shortcuts-actions';
 
@@ -456,9 +456,9 @@ export function restoreSettingsAsync(): ThunkAction {
 
         Object.entries(_.pick(newSettings, ['player', 'workspace'])).forEach(([sectionKey, section]) => {
             Object.keys(section).forEach((key) => {
-                const setValue = loadedSettings[sectionKey]?.[key];
-                if (setValue !== undefined) {
-                    Object.defineProperty(newSettings[sectionKey as 'player' | 'workspace'], key, { value: setValue });
+                const settedValue = loadedSettings[sectionKey]?.[key];
+                if (settedValue !== undefined) {
+                    Object.defineProperty(newSettings[sectionKey as 'player' | 'workspace'], key, { value: settedValue });
                 }
             });
         });

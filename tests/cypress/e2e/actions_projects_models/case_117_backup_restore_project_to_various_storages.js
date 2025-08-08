@@ -41,7 +41,7 @@ context('Tests source & target storage for backups.', () => {
         name: `Case ${caseId}`,
         label: labelName,
         attrName: 'color',
-        attrValue: 'red',
+        attrVaue: 'red',
         multiAttrParams: false,
         advancedConfiguration: {
             sourceStorage: {
@@ -99,7 +99,7 @@ context('Tests source & target storage for backups.', () => {
             project.name,
             project.label,
             project.attrName,
-            project.attrValue,
+            project.attrVaue,
             project.multiAttrParams,
             project.advancedConfiguration,
         );

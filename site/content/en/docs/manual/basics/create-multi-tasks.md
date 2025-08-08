@@ -7,9 +7,7 @@ description: 'Step-by-step guide on how to create and set up multiple tasks'
 
 Use **Create multi tasks** to create multiple video annotation tasks with the same configuration.
 
-{{% alert title="Note" color="primary" %}}
-The **Create multi tasks** feature is available for videos only.
-{{% /alert %}}
+> **Note:** The **Create multi tasks** feature is available for videos only.
 
 Check out:
 
@@ -41,10 +39,8 @@ Next, specify the parameters in the task configurator:
 
    ![Select project](/images/select_project.png)
 
-   {{% alert title="Note" color="primary" %}}
-   Following steps are valid if the tasks do not belong to a project.
-   <br>If the tasks have been assigned to a project, the project's labels will be applied to the tasks.
-   {{% /alert %}}
+   > **Note:** Following steps are valid if the tasks do not belong to a project.
+   > <br>If the tasks have been assigned to a project, the project's labels will be applied to the tasks.
 
 1. On the **Constructor** tab, select **Add label**.
 1. In the **Label name** field, enter the name of the label.
@@ -54,11 +50,7 @@ Next, specify the parameters in the task configurator:
    and set up its properties.
 1. Select {{< ilink "/docs/manual/basics/create-annotation-task#select-files" "**Select files**" >}}
    to upload files for annotation.
-
-   {{% alert title="Note" color="primary" %}}
-   You cannot upload multiple tasks from the cloud storage.
-   {{% /alert %}}
-
+   > **Note:** You cannot upload multiple tasks from the cloud storage.
 1. Select **Submit `N` tasks**
 
 ## Example

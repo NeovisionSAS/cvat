@@ -55,12 +55,12 @@ context('Autoborder feature.', () => {
         }
     }
 
-    function testAutoborderPointsCount(expectedCount) {
+    function testAutoborderPointsCount(expextedCount) {
         cy.get('.cvat_canvas_autoborder_point')
             .should('exist')
             .and('be.visible')
             .then(($autoborderPoints) => {
-                expect($autoborderPoints.length).to.be.equal(expectedCount);
+                expect($autoborderPoints.length).to.be.equal(expextedCount);
             });
     }
 
@@ -76,7 +76,7 @@ context('Autoborder feature.', () => {
     });
 
     describe(`Testing case "${caseId}"`, () => {
-        it('Drawing a polygon with autoborder.', () => {
+        it('Drawning a polygon with autoborder.', () => {
             // Collect the rectagle points coordinates
             testCollectCoord('rect', '#cvat_canvas_shape_1', rectanglePoints);
 

@@ -20,7 +20,7 @@ interface Props {
     angle: number;
     scale: number;
     resolved: boolean;
-    onClick: (event: React.MouseEvent) => void;
+    onClick: () => void;
     highlight: () => void;
     blur: () => void;
 }

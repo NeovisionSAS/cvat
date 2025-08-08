@@ -5,7 +5,7 @@
 
 /// <reference types="cypress" />
 
-context('Create multi tasks.', () => {
+context('Create mutli tasks.', () => {
     const caseId = '118';
     const taskName = `Case ${caseId}`;
     const labelName = taskName;

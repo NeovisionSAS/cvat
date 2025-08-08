@@ -14,7 +14,7 @@ import { AutoborderHandler } from './autoborderHandler';
 export interface EditHandler {
     edit(editData: PolyEditData): void;
     transform(geometry: Geometry): void;
-    configure(configuration: Configuration): void;
+    configurate(configuration: Configuration): void;
     cancel(): void;
     enabled: boolean;
     shapeType: string;
@@ -433,7 +433,7 @@ export class EditHandlerImpl implements EditHandler {
         return this.editData.state.shapeType;
     }
 
-    public configure(configuration: Configuration): void {
+    public configurate(configuration: Configuration): void {
         this.autobordersEnabled = configuration.autoborders;
         this.outlinedBorders = configuration.outlinedBorders || 'black';
 

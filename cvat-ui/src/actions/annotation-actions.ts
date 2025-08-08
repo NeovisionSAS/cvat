@@ -1067,7 +1067,7 @@ export function saveAnnotationsAsync(): ThunkAction {
     };
 }
 
-export function finishCurrentJobAsync(onSuccess: () => void): ThunkAction {
+export function finishCurrentJobAsync(): ThunkAction {
     return async (dispatch: ThunkDispatch, getState) => {
         const state = getState();
         const beforeCallbacks = state.plugins.callbacks.annotationPage.header.menu.beforeJobFinish;
@@ -1076,17 +1076,12 @@ export function finishCurrentJobAsync(onSuccess: () => void): ThunkAction {
         await dispatch(saveAnnotationsAsync());
 
         for await (const callback of beforeCallbacks) {
-            const result = await callback();
-            if (result?.preventJobStatusChange) {
-                return;
-            }
+            await callback();
         }
 
         if (jobInstance.state !== JobState.COMPLETED) {
             await dispatch(updateCurrentJobAsync({ state: JobState.COMPLETED }));
         }
-
-        onSuccess();
     };
 }
 

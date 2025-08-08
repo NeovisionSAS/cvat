@@ -28,7 +28,7 @@ context('Move a task to a project.', { browser: '!firefox' }, () => {
         name: `Case ${caseID}`,
         label: 'Tree',
         attrName: 'Kind',
-        attrValue: 'Oak',
+        attrVaue: 'Oak',
     };
 
     const imagesCount = 1;
@@ -60,7 +60,7 @@ context('Move a task to a project.', { browser: '!firefox' }, () => {
         cy.goToTaskList();
         cy.createAnnotationTask(task.name, task.label, task.attrName, task.attrValue, archiveName);
         cy.goToProjectsList();
-        cy.createProjects(project.name, project.label, project.attrName, project.attrValue);
+        cy.createProjects(project.name, project.label, project.attrName, project.attrVaue);
     });
 
     afterEach(() => {

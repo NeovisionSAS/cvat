@@ -29,11 +29,9 @@ increase contrast, or make other adjustments, this panel is your go-to.
 Additionally, the panel allows you
 to overlay a grid on the image for more precise annotation.
 
-{{% alert title="Note" color="primary" %}}
-Adjusting the image settings only
-alters how the pictures are displayed.
-The images themselves will remain unmodified and unchanged.
-{{% /alert %}}
+> **Note**: Adjusting the image settings only
+> alters how the pictures are displayed.
+> The images themselves will remain unmodified and unchanged.
 
 By default, the **Image settings** panel is not visible. To access
 it, click on the **Arrow Up** (![Image Grid Icon](/images/image-grid-icon.jpg))

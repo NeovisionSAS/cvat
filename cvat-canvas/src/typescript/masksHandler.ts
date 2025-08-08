@@ -24,7 +24,7 @@ interface WrappingBBox {
 export interface MasksHandler {
     draw(drawData: DrawData): void;
     edit(state: MasksEditData): void;
-    configure(configuration: Configuration): void;
+    configurate(configuration: Configuration): void;
     transform(geometry: Geometry): void;
     cancel(): void;
     enabled: boolean;
@@ -551,7 +551,7 @@ export class MasksHandlerImpl implements MasksHandler {
         });
     }
 
-    public configure(configuration: Configuration): void {
+    public configurate(configuration: Configuration): void {
         this.colorBy = configuration.colorBy;
 
         if (this.isHidden !== configuration.hideEditedObject) {

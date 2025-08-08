@@ -93,12 +93,23 @@ services:
   cvat_ui:
     build:
       context: .
-      args:
-        http_proxy:
-        https_proxy:
-        no_proxy:
-        socks_proxy:
       dockerfile: Dockerfile.ui
+    volumes:
+      - ./:/tmp/
+    environment:
+      - NODE_ENV=development
+      - API_URL=http://cvat_server:8000
+    ports:
+      - '3000:3000'
+    networks:
+      - cvat
+    depends_on:
+      - cvat_server
+    labels: # ✅ Add these labels
+      traefik.enable: 'true'
+      traefik.http.services.cvat-ui.loadbalancer.server.port: '3000'
+      traefik.http.routers.cvat-ui.rule: Host(`${CVAT_HOST:-localhost}`)
+      traefik.http.routers.cvat-ui.entrypoints: web
 
   cvat_clickhouse:
     ports:

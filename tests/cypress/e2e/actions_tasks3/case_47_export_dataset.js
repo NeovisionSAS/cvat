@@ -45,7 +45,7 @@ context('Export task dataset.', () => {
                 as: 'exportDatasetRenameArchive',
                 type: 'dataset',
                 format: exportFormat,
-                archiveCustomName: 'job_export_dataset_custom_name',
+                archiveCustomName: 'job_export_dataset_custome_name',
             };
             cy.exportJob(exportDataset);
             cy.downloadExport().then((file) => {

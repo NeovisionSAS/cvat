@@ -36,9 +36,7 @@ import {
     Exception, ArgumentError, DataError, ScriptingError, ServerError,
 } from './exceptions';
 
-import {
-    mask2Rle, rle2Mask, propagateShapes, validateAttributeValue,
-} from './object-utils';
+import { mask2Rle, rle2Mask, propagateShapes } from './object-utils';
 import User from './user';
 import config from './config';
 
@@ -471,7 +469,6 @@ function build(): CVATCore {
             mask2Rle,
             rle2Mask,
             propagateShapes,
-            validateAttributeValue,
         },
     };
 

@@ -1,6 +1,6 @@
 baseURL = "/"
 title = "CVAT"
-relativeURLs = false
+relativeURLs = true
 
 enableRobotsTXT = true
 

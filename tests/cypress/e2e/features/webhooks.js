@@ -43,7 +43,7 @@ context('Webhooks pipeline.', () => {
         name: 'Project for webhooks',
         label: 'car',
         attrName: 'color',
-        attrValue: 'red',
+        attrVaue: 'red',
         multiAttrParams: false,
     };
 
@@ -56,7 +56,7 @@ context('Webhooks pipeline.', () => {
             project.name,
             project.label,
             project.attrName,
-            project.attrValue,
+            project.attrVaue,
             project.multiAttrParams,
         );
     });

@@ -86,10 +86,8 @@ Use the link in the page title to return to the corresponding project, task, or 
 Analytics data is not fetched automatically. When you first open the **Analytics** page, it will be empty.
 To fetch and display the analytical data, select the **Request** button.
 
-{{% alert title="Note" color="primary" %}}
-The analytical data is fetched for all resource children.
-So, when you request data for a task, the data for all task jobs is also fetched.
-{{% /alert %}}
+> **Note**: The analytical data is fetched for all resource children.
+> So, when you request data for a task, the data for all task jobs is also fetched.
 
 Once the data is fetched and displayed on the page, you can check its relevance under the page title.
 A warning icon ![Warning icon](/images/warning-icon.svg) indicates
@@ -104,10 +102,8 @@ The **Analytics** page includes:
 - Date filter.
 - **Export events** button.
 
-{{% alert title="Note" color="primary" %}}
-The date filter is applied to the [**Summary**](#summary-tab)
-and [**Events**](#events-tab) tabs.
-{{% /alert %}}
+> **Note**: The date filter is applied to the [**Summary**](#summary-tab)
+> and [**Events**](#events-tab) tabs.
 
 The **Summary** tab provides a statistics overview, while the **Annotations** and **Events** tabs
 contain the detailed data in table form.
@@ -186,9 +182,7 @@ The **Events** tab displays the following metrics:
 - **Total working time**: Total user time spent.
 - **Avg. annotation speed**: : Average number of objects annotated per hour.
 
-{{% alert title="Note" color="primary" %}}
-All metrics are recalculated when you apply the date or table filter.
-{{% /alert %}}
+> **Note**: All metrics are recalculated when you apply the date or table filter.
 
 The **Events** tab table contains the aggregated events for the selected resource.
 Each event is defined by a unique status signature, which is a combination of the
@@ -247,12 +241,8 @@ The events table columns:
 
 The tables in the **Annotations** and **Events** tabs support:
 1. Exporting the data: select ![Export button](/images/export-button.svg) button.
-
-   {{% alert title="Note" color="primary" %}}
-   Visible columns do not affect the file with exported data.
-   It always contains the complete table with all columns and rows.
-   {{% /alert %}}
-
+   > **Note:** visible columns do not affect the file with exported data.
+   > It always contains the complete table with all columns and rows.
 1. Filtering entries by a custom rule: select **Filter**, and set filtering criteria.
    To learn more about how to set a filter, refer to the **{{< ilink "/docs/manual/advanced/filter" "Filter" >}}**
    article.

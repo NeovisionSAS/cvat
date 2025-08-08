@@ -8454,30 +8454,6 @@
       "tags": [],
       "tracks": [],
       "version": 0
-    },
-    "59": {
-      "shapes": [],
-      "tags": [],
-      "tracks": [],
-      "version": 0
-    },
-    "60": {
-      "shapes": [],
-      "tags": [],
-      "tracks": [],
-      "version": 0
-    },
-    "61": {
-      "shapes": [],
-      "tags": [],
-      "tracks": [],
-      "version": 0
-    },
-    "62": {
-      "shapes": [],
-      "tags": [],
-      "tracks": [],
-      "version": 0
     }
   },
   "task": {
@@ -13112,12 +13088,6 @@
       "tags": [],
       "tracks": [],
       "version": 0
-    },
-    "34": {
-      "shapes": [],
-      "tags": [],
-      "tracks": [],
-      "version": 0
+    }
   }
-}
 }

@@ -48,11 +48,9 @@ This tool is useful in scenarios where multiple objects in an image
 are annotated with one shape,
 and there is a need to slice this shape into multiple parts.
 
-{{% alert title="Note" color="primary" %}}
-The shape can be sliced only in two parts
-at a time. Use the slice tool several times
-to split a shape to as many parts as you need.
-{{% /alert %}}
+> **Note:** The shape can be sliced only in two parts
+> at a time. Use the slice tool several times
+> to split a shape to as many parts as you need.
 
 ![Slicing tool](/images/slicing-tool-01.jpg)
 

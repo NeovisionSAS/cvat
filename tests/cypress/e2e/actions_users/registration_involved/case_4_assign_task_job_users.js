@@ -169,12 +169,12 @@ context('Multiple users. Assign task, job. Deactivating users.', () => {
             });
         });
 
-        it('Deactivate the second user (task assigned). Trying to open the task. Should be successful.', () => {
+        it('Deactivate the second user (task assigned). Trying to open the task. Should be succefull.', () => {
             changeCheckUserStatusOpenTask(secondUserName);
             cy.goToTaskList();
         });
 
-        it('Deactivate the third user (job assigned). Trying to open the task. Should be successful.', () => {
+        it('Deactivate the third user (job assigned). Trying to open the task. Should be succefull.', () => {
             changeCheckUserStatusOpenTask(thirdUserName);
         });
     });

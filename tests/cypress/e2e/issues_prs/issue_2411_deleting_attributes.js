@@ -11,7 +11,6 @@ context('Wrong attribute is removed in label constructor.', () => {
         {
             name: 'person',
             color: '#ff6037',
-            type: 'any',
             attributes: [
                 {
                     name: 'lower_body',

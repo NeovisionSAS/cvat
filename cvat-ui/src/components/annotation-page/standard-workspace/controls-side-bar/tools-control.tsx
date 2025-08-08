@@ -41,7 +41,7 @@ import {
     updateAnnotationsAsync,
     createAnnotationsAsync,
 } from 'actions/annotation-actions';
-import DetectorRunner, { AnnotateTaskRequestBody } from 'components/model-runner-modal/detector-runner';
+import DetectorRunner, { DetectorRequestBody } from 'components/model-runner-modal/detector-runner';
 import LabelSelector from 'components/label-selector/label-selector';
 import CVATTooltip from 'components/common/cvat-tooltip';
 import CVATMarkdown from 'components/common/cvat-markdown';
@@ -221,7 +221,7 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
             bounds?: [number, number, number, number];
         };
         latestPostponedEvent: Event | null;
-        latestApproximatedPoints: number[][];
+        lastestApproximatedPoints: number[][];
         latestRequest: null | {
             interactor: MLModel;
             data: {
@@ -261,7 +261,7 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                 rle: [],
                 points: [],
             },
-            latestApproximatedPoints: [],
+            lastestApproximatedPoints: [],
             latestRequest: null,
             hideMessage: null,
         };
@@ -307,7 +307,7 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                 isAborted: false,
                 latestPostponedEvent: null,
                 latestResponse: { rle: [], points: [] },
-                latestApproximatedPoints: [],
+                lastestApproximatedPoints: [],
                 latestRequest: null,
                 hideMessage: null,
             };
@@ -331,12 +331,12 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
             if (isActivated && mode === 'interaction' && this.interaction.latestResponse.points.length) {
                 this.approximateResponsePoints(this.interaction.latestResponse.points)
                     .then((points: number[][]) => {
-                        this.interaction.latestApproximatedPoints = points;
+                        this.interaction.lastestApproximatedPoints = points;
                         canvasInstance.interact({
                             enabled: true,
                             intermediateShape: {
                                 shapeType: ShapeType.POLYGON,
-                                points: this.interaction.latestApproximatedPoints.flat(),
+                                points: this.interaction.lastestApproximatedPoints.flat(),
                             },
                         });
                     });
@@ -436,7 +436,7 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                     points: response.points as [number, number][],
                     rle,
                 };
-                this.interaction.latestApproximatedPoints = approximated;
+                this.interaction.lastestApproximatedPoints = approximated;
 
                 this.setState({ pointsReceived: !!response.points?.length });
             } finally {
@@ -448,12 +448,12 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                 this.setState({ fetching: false });
             }
 
-            if (this.interaction.latestApproximatedPoints.length) {
+            if (this.interaction.lastestApproximatedPoints.length) {
                 canvasInstance.interact({
                     enabled: true,
                     intermediateShape: {
                         shapeType: convertMasksToPolygons ? ShapeType.POLYGON : ShapeType.MASK,
-                        points: convertMasksToPolygons ? this.interaction.latestApproximatedPoints.flat() :
+                        points: convertMasksToPolygons ? this.interaction.lastestApproximatedPoints.flat() :
                             this.interaction.latestResponse.rle,
                     },
                 });
@@ -488,7 +488,7 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
             // prevent future requests if possible
             this.interaction.isAborted = true;
             this.interaction.latestRequest = null;
-            if (this.interaction.latestApproximatedPoints.length) {
+            if (this.interaction.lastestApproximatedPoints.length) {
                 this.constructFromPoints();
             }
         } else if (shapesUpdated) {
@@ -782,7 +782,6 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                         });
 
                         const response = await core.lambda.call(jobInstance.taskId, tracker, {
-                            type: 'init_tracking',
                             frame: frame - 1,
                             shapes: trackableObjects.shapes,
                             job: jobInstance.id,
@@ -830,7 +829,6 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                         });
                         // eslint-disable-next-line no-await-in-loop
                         const response = await core.lambda.call(jobInstance.taskId, tracker, {
-                            type: 'track',
                             frame,
                             states: trackableObjects.states,
                             job: jobInstance.id,
@@ -885,7 +883,7 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                 source: core.enums.Source.SEMI_AUTO,
                 label: labels.find((label) => label.id === activeLabelID as number) as Label,
                 shapeType: ShapeType.POLYGON,
-                points: this.interaction.latestApproximatedPoints.flat(),
+                points: this.interaction.lastestApproximatedPoints.flat(),
                 occluded: false,
                 zOrder: curZOrder,
             });
@@ -1201,7 +1199,7 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                 models={detectors}
                 labels={labels}
                 dimension={jobInstance.dimension}
-                runInference={async (model: MLModel, body: AnnotateTaskRequestBody) => {
+                runInference={async (model: MLModel, body: DetectorRequestBody) => {
                     function loadAttributes(
                         attributes: { spec_id: number; value: string }[],
                     ): Record<number, string> {
@@ -1215,7 +1213,7 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                         const { cleanup, ...restOfBody } = body;
 
                         const result = await core.lambda.call(jobInstance.taskId, model, {
-                            ...restOfBody, type: 'annotate_frame', frame, job: jobInstance.id,
+                            ...restOfBody, frame, job: jobInstance.id,
                         }) as DetectorResults;
 
                         const tagStates = result.tags.map((tag) => {

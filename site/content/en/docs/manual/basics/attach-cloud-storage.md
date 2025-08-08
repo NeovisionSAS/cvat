@@ -58,9 +58,7 @@ A new bucket will appear on the list of buckets.
 
 ### Upload data
 
-{{% alert title="Note" color="primary" %}}
-The manifest file is optional.
-{{% /alert %}}
+> **Note**: manifest file is optional.
 
 You need to upload data for annotation and the `manifest.jsonl` file.
 
@@ -138,9 +136,7 @@ After filling in all the fields, select **Submit**.
 
 ### AWS S3 manifest file
 
-{{% alert title="Note" color="primary" %}}
-The manifest file is optional.
-{{% /alert %}}
+> **Note**: manifest file is optional.
 
 To prepare the manifest file, do the following:
 
@@ -198,11 +194,7 @@ To create bucket, do the following:
 1. Create [Google account](https://support.google.com/accounts/answer/27441?hl=en) and log into it.
 1. On the [Google Cloud](https://cloud.google.com/) page, select **Start Free**, then enter the required
    data and accept the terms of service.
-
-   {{% alert title="Note" color="primary" %}}
-   Google requires to add payment, you will need a bank card to accomplish step 2.
-   {{% /alert %}}
-
+   > **Note:** Google requires to add payment, you will need a bank card to accomplish step 2.
 1. [Create a Bucket](https://cloud.google.com/storage/docs/creating-buckets) with the following parameters:
    - **Name your bucket**: Unique name.
    - **Choose where to store your data**: Set up a location nearest to you.
@@ -217,9 +209,7 @@ You will be forwarded to the bucket.
 
 ### Upload data
 
-{{% alert title="Note" color="primary" %}}
-The manifest file is optional.
-{{% /alert %}}
+> **Note**: manifest file is optional.
 
 You need to upload data for annotation and the `manifest.jsonl` file.
 
@@ -386,11 +376,7 @@ You need to upload data for annotation and the `manifest.jsonl` file.
    refer on how to [prepare the dataset](#prepare-the-dataset).
 1. Go to container and select **Upload**.
 1. Select **Browse for files** and select images.
-
-   {{% alert title="Note" color="primary" %}}
-   If images are in folder, specify folder in the **Advanced settings** > **Upload to folder**.
-   {{% /alert %}}
-
+   > Note: If images are in folder, specify folder in the **Advanced settings** > **Upload to folder**.
 1. Select **Upload**.
 
 ![Microsoft Azure interface with highlighted "Upload" button and upload settings](/images/azure_blob_container_tutorial9.jpg)

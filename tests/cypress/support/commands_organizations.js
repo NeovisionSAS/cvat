@@ -51,8 +51,8 @@ Cypress.Commands.add('deleteOrganizations', (authResponse, otrganizationsToDelet
             Authorization: `Token ${authKey}`,
         },
     }).then((_response) => {
-        const responseResult = _response.body.results;
-        for (const organization of responseResult) {
+        const responceResult = _response.body.results;
+        for (const organization of responceResult) {
             const { id, slug } = organization;
             for (const organizationToDelete of otrganizationsToDelete) {
                 if (slug === organizationToDelete) {
