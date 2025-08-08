@@ -35,6 +35,7 @@ import ContextImage from 'components/annotation-page/canvas/views/context-image/
 import CVATTooltip from 'components/common/cvat-tooltip';
 import { useUpdateEffect } from 'utils/hooks';
 import defaultLayout, { ItemLayout, ViewType } from './canvas-layout.conf';
+import { TPS } from 'transformation-models';
 
 const ReactGridLayout = WidthProvider(RGL);
 
@@ -152,6 +153,7 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
     const [overlayOpacity, setOverlayOpacity] = useState<number>(0.9);
     const [overlayColor, setOverlayColor] = useState<string>('#00ff00'); // Default green color
     const [invertColors, setInvertColors] = useState<boolean>(true); // Default to invert (ON)
+    const [warpType, setWarpType] = useState<'homography' | 'tps'>('tps'); // Default to TPS
 
     // Get clean image without annotations from job data
     const getRawCanvasImage = useCallback(async (): Promise<HTMLCanvasElement | null> => {
@@ -246,68 +248,96 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
         console.log('getRawCanvasImage: Returning null');
         return null;
     }, [job, frame]);
-    const createWarpedImage = (
+
+    const processImageData = (
+        canvas: HTMLCanvasElement,
+        tintColor: string,
+        shouldInvert: boolean,
+    ): HTMLCanvasElement => {
+        const processedCanvas = document.createElement('canvas');
+        const processedCtx = processedCanvas.getContext('2d')!;
+        processedCanvas.width = canvas.width;
+        processedCanvas.height = canvas.height;
+
+        processedCtx.drawImage(canvas, 0, 0);
+        const imageData = processedCtx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        const hexColor = tintColor.replace('#', '');
+        const tintR = parseInt(hexColor.substr(0, 2), 16);
+        const tintG = parseInt(hexColor.substr(2, 2), 16);
+        const tintB = parseInt(hexColor.substr(4, 2), 16);
+
+        for (let i = 0; i < data.length; i += 4) {
+            const alpha = data[i + 3];
+            if (alpha === 0) continue;
+
+            let r = data[i];
+            let g = data[i + 1];
+            let b = data[i + 2];
+
+            if (shouldInvert) {
+                r = 255 - r;
+                g = 255 - g;
+                b = 255 - b;
+            }
+
+            const brightness = (r + g + b) * 0.0013072;
+            data[i] = Math.floor(tintR * brightness);
+            data[i + 1] = Math.floor(tintG * brightness);
+            data[i + 2] = Math.floor(tintB * brightness);
+        }
+
+        processedCtx.putImageData(imageData, 0, 0);
+        return processedCanvas;
+    };
+
+    // Homography-based warping (centroid alignment)
+    const homography = (
         canvasElement: HTMLCanvasElement,
         firstPolyline: number[],
         secondPolyline: number[],
-        tintColor: string = '#00ff00', // Default green, but configurable
-        shouldInvert: boolean = true, // Default to invert
+        tintColor: string = '#00ff00',
+        shouldInvert: boolean = true,
     ): string => {
         const ctx = canvasElement.getContext('2d')!;
         const halfWidth = canvasElement.width / 2;
 
-        // Create canvases for left and right halves
+        // Split image
         const leftCanvas = document.createElement('canvas');
         const rightCanvas = document.createElement('canvas');
         const leftCtx = leftCanvas.getContext('2d')!;
         const rightCtx = rightCanvas.getContext('2d')!;
 
         leftCanvas.width = halfWidth;
-        leftCanvas.height = canvasElement.height;
         rightCanvas.width = halfWidth;
+        leftCanvas.height = canvasElement.height;
         rightCanvas.height = canvasElement.height;
 
-        // Extract left and right halves
         leftCtx.putImageData(ctx.getImageData(0, 0, halfWidth, canvasElement.height), 0, 0);
         rightCtx.putImageData(ctx.getImageData(halfWidth, 0, halfWidth, canvasElement.height), 0, 0);
 
-        // Create warped canvas
-        const warpedCanvas = document.createElement('canvas');
-        const warpedCtx = warpedCanvas.getContext('2d')!;
-        warpedCanvas.width = halfWidth;
-        warpedCanvas.height = canvasElement.height;
-
-        // Optimize canvas rendering for performance
-        warpedCtx.imageSmoothingEnabled = false; // Disable smoothing for faster rendering
-
-        // Convert polygon points to coordinate arrays - handles any number of points
+        // Convert points
         const srcPoints = [];
         const dstPoints = [];
-
-        // Source points from first polygon (left image coordinates)
         for (let i = 0; i < firstPolyline.length; i += 2) {
             srcPoints.push([firstPolyline[i], firstPolyline[i + 1]]);
-        }
-
-        // Destination points from second polygon (right image coordinates, adjusted)
-        for (let i = 0; i < secondPolyline.length; i += 2) {
             dstPoints.push([secondPolyline[i] - halfWidth, secondPolyline[i + 1]]);
         }
 
-        console.log(`Source polygon (${srcPoints.length} points, left image):`, srcPoints);
-        console.log(`Destination polygon (${dstPoints.length} points, right image):`, dstPoints);
+        // Calculate centroids
+        const srcCentroidX = srcPoints.reduce((sum, p) => sum + p[0], 0) / srcPoints.length;
+        const srcCentroidY = srcPoints.reduce((sum, p) => sum + p[1], 0) / srcPoints.length;
+        const dstCentroidX = dstPoints.reduce((sum, p) => sum + p[0], 0) / dstPoints.length;
+        const dstCentroidY = dstPoints.reduce((sum, p) => sum + p[1], 0) / dstPoints.length;
 
-        // Start with the right image as base
-        warpedCtx.drawImage(rightCanvas, 0, 0);
-
-        // Calculate bounding boxes for both polygons
+        // Calculate scale
         const srcBounds = {
             minX: Math.min(...srcPoints.map((p) => p[0])),
             maxX: Math.max(...srcPoints.map((p) => p[0])),
             minY: Math.min(...srcPoints.map((p) => p[1])),
             maxY: Math.max(...srcPoints.map((p) => p[1])),
         };
-
         const dstBounds = {
             minX: Math.min(...dstPoints.map((p) => p[0])),
             maxX: Math.max(...dstPoints.map((p) => p[0])),
@@ -315,100 +345,250 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
             maxY: Math.max(...dstPoints.map((p) => p[1])),
         };
 
-        // Calculate transformation parameters based on polygon mapping
-        const srcWidth = srcBounds.maxX - srcBounds.minX;
-        const srcHeight = srcBounds.maxY - srcBounds.minY;
-        const dstWidth = dstBounds.maxX - dstBounds.minX;
-        const dstHeight = dstBounds.maxY - dstBounds.minY;
+        const scaleX = (dstBounds.maxX - dstBounds.minX) / (srcBounds.maxX - srcBounds.minX);
+        const scaleY = (dstBounds.maxY - dstBounds.minY) / (srcBounds.maxY - srcBounds.minY);
 
-        const scaleX = dstWidth / srcWidth;
-        const scaleY = dstHeight / srcHeight;
+        // Create result
+        const warpedCanvas = document.createElement('canvas');
+        const warpedCtx = warpedCanvas.getContext('2d')!;
+        warpedCanvas.width = halfWidth;
+        warpedCanvas.height = canvasElement.height;
 
-        // Calculate centroids for alignment (works for any polygon shape)
-        const srcCentroidX = srcPoints.reduce((sum, p) => sum + p[0], 0) / srcPoints.length;
-        const srcCentroidY = srcPoints.reduce((sum, p) => sum + p[1], 0) / srcPoints.length;
-        const dstCentroidX = dstPoints.reduce((sum, p) => sum + p[0], 0) / dstPoints.length;
-        const dstCentroidY = dstPoints.reduce((sum, p) => sum + p[1], 0) / dstPoints.length;
+        warpedCtx.drawImage(rightCanvas, 0, 0);
 
-        // For more complex polygons, we could implement more sophisticated warping here
-        // For now, we use the centroid-based approach which works reasonably well
+        const processedLeft = processImageData(leftCanvas, tintColor, shouldInvert);
 
-        // Create a processed version of the left image with green tint and inversion
-        const processedLeftCanvas = document.createElement('canvas');
-        const processedLeftCtx = processedLeftCanvas.getContext('2d')!;
-        processedLeftCanvas.width = halfWidth;
-        processedLeftCanvas.height = canvasElement.height;
-
-        // Draw left image to processed canvas
-        processedLeftCtx.drawImage(leftCanvas, 0, 0);
-
-        // Get image data for color manipulation
-        const imageData = processedLeftCtx.getImageData(0, 0, halfWidth, canvasElement.height);
-        const data = imageData.data;
-
-        // Parse the tint color from hex to RGB
-        const hexColor = tintColor.replace('#', '');
-        const tintR = parseInt(hexColor.substr(0, 2), 16);
-        const tintG = parseInt(hexColor.substr(2, 2), 16);
-        const tintB = parseInt(hexColor.substr(4, 2), 16);
-
-        // Apply color tint and optionally invert (optimized for performance)
-        for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const alpha = data[i + 3];
-
-            // Skip transparent pixels
-            if (alpha === 0) continue;
-
-            let processedR, processedG, processedB;
-
-            if (shouldInvert) {
-                // Invert colors (for black images) to get a bright base
-                processedR = 255 - r;
-                processedG = 255 - g;
-                processedB = 255 - b;
-            } else {
-                // Use original colors directly (no inversion)
-                processedR = r;
-                processedG = g;
-                processedB = b;
-            }
-
-            // Calculate brightness for masking
-            const brightness = (processedR + processedG + processedB) * 0.0013072; // Equivalent to / (3 * 255) but faster
-
-            // Apply pure color tint with brightness masking
-            data[i] = (tintR * brightness) | 0; // Bitwise OR for faster integer conversion
-            data[i + 1] = (tintG * brightness) | 0; // Bitwise OR for faster integer conversion
-            data[i + 2] = (tintB * brightness) | 0; // Bitwise OR for faster integer conversion
-        }
-
-        // Put the processed image data back
-        processedLeftCtx.putImageData(imageData, 0, 0);
-
-        // Apply the transformation to overlay the processed left image
         warpedCtx.save();
-        warpedCtx.globalAlpha = 1.0; // Full opacity for the processed overlay
-        warpedCtx.globalCompositeOperation = 'screen'; // Bright overlay mode
-
-        // Calculate transformation to map the entire left image based on polygon correspondence
-        const scaleFactorX = scaleX;
-        const scaleFactorY = scaleY;
-
-        // Calculate offset to align the polygon regions (centroid-based approach)
-        const offsetX = dstCentroidX - srcCentroidX * scaleFactorX;
-        const offsetY = dstCentroidY - srcCentroidY * scaleFactorY;
-
-        // Transform and draw the processed left image
-        warpedCtx.translate(offsetX, offsetY);
-        warpedCtx.scale(scaleFactorX, scaleFactorY);
-        warpedCtx.drawImage(processedLeftCanvas, 0, 0);
-
+        warpedCtx.globalCompositeOperation = 'screen';
+        warpedCtx.translate(dstCentroidX - srcCentroidX * scaleX, dstCentroidY - srcCentroidY * scaleY);
+        warpedCtx.scale(scaleX, scaleY);
+        warpedCtx.drawImage(processedLeft, 0, 0);
         warpedCtx.restore();
 
         return warpedCanvas.toDataURL();
+    };
+
+    // TPS (Thin Plate Spline) warping for accurate point-to-point deformation
+    const tps = async (
+        canvasElement: HTMLCanvasElement,
+        firstPolyline: number[],
+        secondPolyline: number[],
+        tintColor: string = '#00ff00',
+        shouldInvert: boolean = true,
+    ): Promise<string> => {
+        console.log('TPS - Starting TPS transformation');
+        const ctx = canvasElement.getContext('2d')!;
+        const halfWidth = canvasElement.width / 2;
+
+        // Split image
+        const leftCanvas = document.createElement('canvas');
+        const rightCanvas = document.createElement('canvas');
+        const leftCtx = leftCanvas.getContext('2d')!;
+        const rightCtx = rightCanvas.getContext('2d')!;
+
+        leftCanvas.width = halfWidth;
+        rightCanvas.width = halfWidth;
+        leftCanvas.height = canvasElement.height;
+        rightCanvas.height = canvasElement.height;
+
+        leftCtx.putImageData(ctx.getImageData(0, 0, halfWidth, canvasElement.height), 0, 0);
+        rightCtx.putImageData(ctx.getImageData(halfWidth, 0, halfWidth, canvasElement.height), 0, 0);
+
+        // Convert points to coordinate pairs
+        const srcPoints = [];
+        const dstPoints = [];
+        for (let i = 0; i < firstPolyline.length; i += 2) {
+            srcPoints.push([firstPolyline[i], firstPolyline[i + 1]]);
+            dstPoints.push([secondPolyline[i] - halfWidth, secondPolyline[i + 1]]);
+        }
+
+        console.log(`TPS - Processing ${srcPoints.length} control point pairs`);
+        console.log('TPS - Source points:', srcPoints);
+        console.log('TPS - Destination points:', dstPoints);
+
+        const warpedCanvas = document.createElement('canvas');
+        const warpedCtx = warpedCanvas.getContext('2d')!;
+        warpedCanvas.width = halfWidth;
+        warpedCanvas.height = canvasElement.height;
+
+        // Start with the right canvas as base
+        warpedCtx.drawImage(rightCanvas, 0, 0);
+
+        if (srcPoints.length >= 3) {
+            try {
+                // Create TPS transformation with source and target points
+                console.log('TPS - Creating TPS transformation object');
+                const tpsTransform = new TPS();
+                tpsTransform.setControlPoints(srcPoints, dstPoints);
+                tpsTransform.calculateForwardTransformation();
+
+                // Process and apply color tinting to the left image first (same as homography)
+                const processedLeft = processImageData(leftCanvas, tintColor, shouldInvert);
+
+                // Apply TPS warping using same blend mode as homography
+                warpedCtx.save();
+                warpedCtx.globalCompositeOperation = 'screen'; // Same as homography
+
+                // Create a temporary canvas for the warped processed image
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d')!;
+                tempCanvas.width = halfWidth;
+                tempCanvas.height = canvasElement.height;
+
+                // Get source image data from processed left
+                const processedCtx = processedLeft.getContext('2d')!;
+                const sourceImageData = processedCtx.getImageData(0, 0, halfWidth, canvasElement.height);
+                const sourceData = sourceImageData.data;
+
+                // Create output image data for warped result
+                const warpedImageData = tempCtx.createImageData(halfWidth, canvasElement.height);
+                const warpedData = warpedImageData.data;
+
+                console.log(`TPS - Applying TPS warping to ${halfWidth}x${canvasElement.height} pixels`);
+
+                let transformedPixels = 0;
+                let skippedPixels = 0;
+
+                // Apply TPS transformation pixel by pixel
+                for (let destY = 0; destY < canvasElement.height; destY++) {
+                    for (let destX = 0; destX < halfWidth; destX++) {
+                        const outIndex = (destY * halfWidth + destX) * 4;
+
+                        try {
+                            // Use TPS inverse transformation to find source pixel
+                            const [srcX, srcY] = tpsTransform.inverse([destX, destY]);
+
+                            // Check if source coordinates are within bounds
+                            if (srcX >= 0 && srcX < halfWidth - 1 && srcY >= 0 && srcY < canvasElement.height - 1) {
+                                // Bilinear interpolation for smooth results
+                                const x0 = Math.floor(srcX);
+                                const x1 = Math.min(x0 + 1, halfWidth - 1);
+                                const y0 = Math.floor(srcY);
+                                const y1 = Math.min(y0 + 1, canvasElement.height - 1);
+
+                                const dx = srcX - x0;
+                                const dy = srcY - y0;
+
+                                // Get the four surrounding pixels
+                                const idx00 = (y0 * halfWidth + x0) * 4;
+                                const idx01 = (y0 * halfWidth + x1) * 4;
+                                const idx10 = (y1 * halfWidth + x0) * 4;
+                                const idx11 = (y1 * halfWidth + x1) * 4;
+
+                                // Interpolate each color channel
+                                for (let c = 0; c < 4; c++) {
+                                    const val00 = sourceData[idx00 + c];
+                                    const val01 = sourceData[idx01 + c];
+                                    const val10 = sourceData[idx10 + c];
+                                    const val11 = sourceData[idx11 + c];
+
+                                    const val0 = val00 * (1 - dx) + val01 * dx;
+                                    const val1 = val10 * (1 - dx) + val11 * dx;
+                                    const finalVal = val0 * (1 - dy) + val1 * dy;
+
+                                    warpedData[outIndex + c] = Math.round(finalVal);
+                                }
+
+                                transformedPixels++;
+                            } else {
+                                // Outside bounds - make transparent
+                                warpedData[outIndex + 0] = 0; // R
+                                warpedData[outIndex + 1] = 0; // G
+                                warpedData[outIndex + 2] = 0; // B
+                                warpedData[outIndex + 3] = 0; // A
+                                skippedPixels++;
+                            }
+                        } catch (tpsError) {
+                            // If TPS calculation fails for this pixel, make it transparent
+                            warpedData[outIndex + 0] = 0;
+                            warpedData[outIndex + 1] = 0;
+                            warpedData[outIndex + 2] = 0;
+                            warpedData[outIndex + 3] = 0;
+                            skippedPixels++;
+                        }
+                    }
+                }
+
+                console.log(`TPS - Transformed ${transformedPixels} pixels, skipped ${skippedPixels} pixels`);
+
+                // Put the warped image data to temp canvas
+                tempCtx.putImageData(warpedImageData, 0, 0);
+
+                // Now draw the warped image using exact same method as homography
+                warpedCtx.drawImage(tempCanvas, 0, 0);
+                warpedCtx.restore();
+
+                console.log('TPS - TPS warping completed successfully');
+            } catch (error) {
+                console.error('TPS - Error in TPS transformation:', error);
+                // Fallback to simple processing without warping (same as homography)
+                const processedLeft = processImageData(leftCanvas, tintColor, shouldInvert);
+                warpedCtx.save();
+                warpedCtx.globalCompositeOperation = 'screen';
+                warpedCtx.drawImage(processedLeft, 0, 0);
+                warpedCtx.restore();
+                console.log('TPS - Used fallback due to error');
+            }
+        } else if (srcPoints.length === 2) {
+            // For 2 points, use simple scaling and translation
+            console.log('TPS - Using 2-point transformation (similarity)');
+            const src1 = srcPoints[0],
+                src2 = srcPoints[1];
+            const dst1 = dstPoints[0],
+                dst2 = dstPoints[1];
+
+            const srcVec = [src2[0] - src1[0], src2[1] - src1[1]];
+            const dstVec = [dst2[0] - dst1[0], dst2[1] - dst1[1]];
+            const srcLen = Math.sqrt(srcVec[0] * srcVec[0] + srcVec[1] * srcVec[1]);
+            const dstLen = Math.sqrt(dstVec[0] * dstVec[0] + dstVec[1] * dstVec[1]);
+
+            const processedLeft = processImageData(leftCanvas, tintColor, shouldInvert);
+            warpedCtx.save();
+            warpedCtx.globalCompositeOperation = 'screen';
+
+            if (srcLen > 0 && dstLen > 0) {
+                const scale = dstLen / srcLen;
+                const angle = Math.atan2(dstVec[1], dstVec[0]) - Math.atan2(srcVec[1], srcVec[0]);
+                warpedCtx.translate(dst1[0], dst1[1]);
+                warpedCtx.rotate(angle);
+                warpedCtx.scale(scale, scale);
+                warpedCtx.translate(-src1[0], -src1[1]);
+                warpedCtx.drawImage(processedLeft, 0, 0);
+            } else {
+                warpedCtx.translate(dst1[0] - src1[0], dst1[1] - src1[1]);
+                warpedCtx.drawImage(processedLeft, 0, 0);
+            }
+            warpedCtx.restore();
+        } else {
+            // Fallback for insufficient points
+            console.log('TPS - Insufficient points, using simple overlay');
+            const processedLeft = processImageData(leftCanvas, tintColor, shouldInvert);
+            warpedCtx.save();
+            warpedCtx.globalCompositeOperation = 'screen';
+            if (srcPoints.length === 1) {
+                const src = srcPoints[0];
+                const dst = dstPoints[0];
+                warpedCtx.translate(dst[0] - src[0], dst[1] - src[1]);
+            }
+            warpedCtx.drawImage(processedLeft, 0, 0);
+            warpedCtx.restore();
+        }
+
+        return warpedCanvas.toDataURL();
+    };
+    const createWarpedImage = async (
+        canvasElement: HTMLCanvasElement,
+        firstPolyline: number[],
+        secondPolyline: number[],
+        tintColor: string = '#00ff00',
+        shouldInvert: boolean = true,
+        transformType: 'homography' | 'tps' = 'tps',
+    ): Promise<string> => {
+        if (transformType === 'homography') {
+            return homography(canvasElement, firstPolyline, secondPolyline, tintColor, shouldInvert);
+        } else {
+            return await tps(canvasElement, firstPolyline, secondPolyline, tintColor, shouldInvert);
+        }
     };
 
     // Process warping with clean image
@@ -439,28 +619,128 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
 
             if (rawCanvas && annotations) {
                 const frameAnnotations = annotations.states.filter(
-                    (state: any) => state.frame === frame && state.shapeType === 'polygon',
+                    (state: any) =>
+                        state.frame === frame &&
+                        (state.shapeType === 'polygon' || state.shapeType === 'polyline') &&
+                        !state.outside, // Exclude annotations marked as outside
                 );
-                console.log('processWarping: Found frame annotations:', frameAnnotations.length);
+                console.log('processWarping: Found frame annotations (excluding outside):', frameAnnotations.length);
 
-                if (frameAnnotations.length >= 2) {
-                    const firstPolyline = frameAnnotations[0].points;
-                    const secondPolyline = frameAnnotations[1].points;
+                // Handle polygons (existing logic)
+                const polygonAnnotations = frameAnnotations.filter((state: any) => state.shapeType === 'polygon');
+                if (polygonAnnotations.length >= 2) {
+                    const firstPolyline = polygonAnnotations[0].points;
+                    const secondPolyline = polygonAnnotations[1].points;
                     console.log('processWarping: Processing polygons');
 
-                    const warpedImageUrl = createWarpedImage(
+                    const warpedImageUrl = await createWarpedImage(
                         rawCanvas,
                         firstPolyline,
                         secondPolyline,
                         overlayColor,
                         invertColors,
+                        warpType,
                     );
-                    console.log('processWarping: Warped image created');
+                    console.log('processWarping: Warped image created from polygons');
                     setWarpedResult(warpedImageUrl);
-                } else {
-                    console.log('processWarping: Not enough polygons');
-                    setWarpedResult(null);
+                    return;
                 }
+
+                // Handle polylines (improved logic)
+                const polylineAnnotations = frameAnnotations.filter((state: any) => state.shapeType === 'polyline');
+                if (polylineAnnotations.length >= 1) {
+                    console.log(`processWarping: Found ${polylineAnnotations.length} polyline(s)`);
+
+                    let firstPoints: number[] = [];
+                    let secondPoints: number[] = [];
+
+                    if (polylineAnnotations.length >= 2) {
+                        // If we have 2 or more polylines, use first polyline for left image, second for right image
+                        const firstPolyline = polylineAnnotations[0].points;
+                        const secondPolyline = polylineAnnotations[1].points;
+
+                        console.log('processWarping: Using two separate polylines');
+                        console.log('processWarping: First polyline points:', firstPolyline);
+                        console.log('processWarping: Second polyline points:', secondPolyline);
+
+                        // Use the polylines directly as point sets
+                        firstPoints = firstPolyline;
+                        secondPoints = secondPolyline;
+                    } else if (polylineAnnotations.length === 1) {
+                        // Single polyline: split points in half or use alternating logic
+                        const points = polylineAnnotations[0].points;
+                        console.log('processWarping: Single polyline with points:', points);
+
+                        if (points.length >= 8) {
+                            // Need at least 4 point pairs (8 coordinates)
+                            if (points.length % 4 === 0) {
+                                // Even number of point pairs - split in half
+                                const midPoint = points.length / 2;
+                                firstPoints = points.slice(0, midPoint);
+                                secondPoints = points.slice(midPoint);
+                                console.log('processWarping: Split polyline in half');
+                            } else {
+                                // Use alternating points logic (original approach)
+                                for (let i = 0; i < points.length; i += 2) {
+                                    if (i + 1 < points.length) {
+                                        const pointIndex = i / 2; // Which point this is (0, 1, 2, ...)
+                                        if (pointIndex % 2 === 0) {
+                                            // Even point indices (0, 2, 4...) go to first image (left)
+                                            firstPoints.push(points[i], points[i + 1]);
+                                        } else {
+                                            // Odd point indices (1, 3, 5...) go to second image (right)
+                                            secondPoints.push(points[i], points[i + 1]);
+                                        }
+                                    }
+                                }
+                                console.log('processWarping: Used alternating points logic');
+                            }
+                        } else {
+                            console.log('processWarping: Single polyline has insufficient points (<8 coordinates)');
+                        }
+                    }
+
+                    console.log('processWarping: Final first image points:', firstPoints);
+                    console.log('processWarping: Final second image points:', secondPoints);
+
+                    // Need at least 6 coordinates (3 points) in each image for TPS
+                    // Need at least 4 coordinates (2 points) in each image for basic homography
+                    const minPoints = warpType === 'tps' ? 6 : 4;
+
+                    if (
+                        firstPoints.length >= minPoints &&
+                        secondPoints.length >= minPoints &&
+                        firstPoints.length === secondPoints.length
+                    ) {
+                        console.log(
+                            `processWarping: Processing polylines with ${warpType} (${
+                                firstPoints.length / 2
+                            } point pairs)`,
+                        );
+
+                        const warpedImageUrl = await createWarpedImage(
+                            rawCanvas,
+                            firstPoints,
+                            secondPoints,
+                            overlayColor,
+                            invertColors,
+                            warpType,
+                        );
+                        console.log('processWarping: Warped image created from polylines');
+                        setWarpedResult(warpedImageUrl);
+                        return;
+                    } else {
+                        console.log(
+                            `processWarping: Insufficient points for ${warpType} warping. Need ${
+                                minPoints / 2
+                            } point pairs in each image, got:`,
+                            `Left: ${firstPoints.length / 2} pairs, Right: ${secondPoints.length / 2} pairs`,
+                        );
+                    }
+                }
+
+                console.log('processWarping: No suitable annotations found');
+                setWarpedResult(null);
             } else {
                 console.log('processWarping: Missing prerequisites');
                 setWarpedResult(null);
@@ -469,27 +749,31 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
             console.error('processWarping: Error:', error);
             setWarpedResult(null);
         }
-    }, [annotations, frame, getRawCanvasImage, canvasInstance, overlayColor, invertColors]);
+    }, [annotations, frame, getRawCanvasImage, canvasInstance, overlayColor, invertColors, warpType]);
 
     // No complex debounced update needed with simple image element approach
 
-    // Memoized polygon count to avoid unnecessary updates
-    const polygonCount = useMemo(() => {
+    // Memoized annotation count to avoid unnecessary updates
+    const annotationCount = useMemo(() => {
         if (annotations && annotations.states) {
-            return annotations.states.filter((state: any) => state.frame === frame && state.shapeType === 'polygon')
-                .length;
+            const polygons = annotations.states.filter(
+                (state: any) => state.frame === frame && state.shapeType === 'polygon' && !state.outside, // Exclude outside annotations
+            ).length;
+            const polylines = annotations.states.filter(
+                (state: any) => state.frame === frame && state.shapeType === 'polyline' && !state.outside, // Exclude outside annotations
+            ).length;
+            return { polygons, polylines, total: polygons + polylines };
         }
-        return 0;
+        return { polygons: 0, polylines: 0, total: 0 };
     }, [annotations?.states, frame]);
-
     useEffect(() => {
-        console.log('Polygon count useEffect triggered - polygonCount:', polygonCount, 'frame:', frame);
+        console.log('Annotation count useEffect triggered - annotations:', annotationCount, 'frame:', frame);
 
-        // Only process warping when we have at least 2 polygons
-        if (polygonCount >= 2) {
+        // Process warping when we have at least 2 polygons OR at least 1 polyline with multiple points
+        if (annotationCount.polygons >= 2 || annotationCount.polylines >= 1) {
             // Much faster response for frame changes - immediate processing
             const timeoutId = setTimeout(() => {
-                console.log('Polygon count useEffect: About to call processWarping');
+                console.log('Annotation count useEffect: About to call processWarping');
                 processWarping();
             }, 10); // Reduced from 100ms to 10ms for much faster frame changes
 
@@ -497,7 +781,7 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
         } else {
             setWarpedResult(null);
         }
-    }, [polygonCount, processWarping]); // Only depend on polygon count, not the entire annotations array
+    }, [annotationCount, warpType, overlayColor, invertColors]); // Add dependencies to trigger redraw when these change
 
     // No need to cache the warped image anymore since we're using img element directly
 
@@ -537,7 +821,7 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
                 };
             }
         }
-    }, [canvasInstance, processWarping]);
+    }, [canvasInstance]); // Remove processWarping to prevent infinite loop
 
     // Function removed - using CSS-based positioning instead
 
@@ -755,9 +1039,7 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
                             setLayoutConfig(transformedLayout);
                         }
                     }}
-                    resizeHandle={(_: any, ref: React.MutableRefObject<HTMLDivElement>) => (
-                        <div ref={ref} className='cvat-grid-item-resize-handler react-resizable-handle' />
-                    )}
+                    resizeHandle={() => <div className='cvat-grid-item-resize-handler react-resizable-handle' />}
                     draggableHandle='.cvat-grid-item-drag-handler'
                 >
                     {children.map((child: JSX.Element, idx: number): JSX.Element => {
@@ -827,11 +1109,8 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
                                         }}
                                     >
                                         <span>
-                                            Frame: {frame} | Polygons:{' '}
-                                            {annotations.states?.filter(
-                                                (s: any) => s.frame === frame && s.shapeType === 'polygon',
-                                            ).length || 0}{' '}
-                                            | Warped: {warpedResult ? 'Yes' : 'No'}
+                                            Frame: {frame} | Polygons: {annotationCount.polygons} | Polylines:{' '}
+                                            {annotationCount.polylines} | Warped: {warpedResult ? 'Yes' : 'No'}
                                         </span>
                                         {warpedResult && (
                                             <>
@@ -905,6 +1184,28 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
                                                     >
                                                         {invertColors ? 'Invert: ON' : 'Invert: OFF'}
                                                     </button>
+                                                </div>
+
+                                                {/* Warp type selector */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                    <span style={{ fontSize: '10px' }}>Warp:</span>
+                                                    <select
+                                                        value={warpType}
+                                                        onChange={(e) =>
+                                                            setWarpType(e.target.value as 'homography' | 'tps')
+                                                        }
+                                                        style={{
+                                                            fontSize: '10px',
+                                                            padding: '2px 4px',
+                                                            border: '1px solid #ccc',
+                                                            borderRadius: '3px',
+                                                            background: '#fff',
+                                                            cursor: 'pointer',
+                                                        }}
+                                                    >
+                                                        <option value='homography'>Homography</option>
+                                                        <option value='tps'>TPS</option>
+                                                    </select>
                                                 </div>
                                             </>
                                         )}
