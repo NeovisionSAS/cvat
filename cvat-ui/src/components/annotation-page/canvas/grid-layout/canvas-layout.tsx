@@ -149,8 +149,9 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
     const job = useSelector((state: CombinedState) => state.annotation.job.instance);
     const [warpedResult, setWarpedResult] = useState<string | null>(null);
     const [overlayVisible, setOverlayVisible] = useState<boolean>(true);
-    const [overlayOpacity, setOverlayOpacity] = useState<number>(0.7);
+    const [overlayOpacity, setOverlayOpacity] = useState<number>(0.9);
     const [overlayColor, setOverlayColor] = useState<string>('#00ff00'); // Default green color
+    const [invertColors, setInvertColors] = useState<boolean>(true); // Default to invert (ON)
 
     // Get clean image without annotations from job data
     const getRawCanvasImage = useCallback(async (): Promise<HTMLCanvasElement | null> => {
@@ -250,6 +251,7 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
         firstPolyline: number[],
         secondPolyline: number[],
         tintColor: string = '#00ff00', // Default green, but configurable
+        shouldInvert: boolean = true, // Default to invert
     ): string => {
         const ctx = canvasElement.getContext('2d')!;
         const halfWidth = canvasElement.width / 2;
@@ -350,7 +352,7 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
         const tintG = parseInt(hexColor.substr(2, 2), 16);
         const tintB = parseInt(hexColor.substr(4, 2), 16);
 
-        // Apply color tint and inversion (optimized for performance)
+        // Apply color tint and optionally invert (optimized for performance)
         for (let i = 0; i < data.length; i += 4) {
             const r = data[i];
             const g = data[i + 1];
@@ -360,15 +362,24 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
             // Skip transparent pixels
             if (alpha === 0) continue;
 
-            // Fast inversion and brightness calculation
-            const invertedR = 255 - r;
-            const invertedG = 255 - g;
-            const invertedB = 255 - b;
+            let processedR, processedG, processedB;
 
-            // Optimized brightness calculation (avoid division by using bit shifting)
-            const brightness = (invertedR + invertedG + invertedB) * 0.0013072; // Equivalent to / (3 * 255) but faster
+            if (shouldInvert) {
+                // Invert colors (for black images) to get a bright base
+                processedR = 255 - r;
+                processedG = 255 - g;
+                processedB = 255 - b;
+            } else {
+                // Use original colors directly (no inversion)
+                processedR = r;
+                processedG = g;
+                processedB = b;
+            }
 
-            // Apply pure color tint with brightness masking (using multiplication instead of Math.round)
+            // Calculate brightness for masking
+            const brightness = (processedR + processedG + processedB) * 0.0013072; // Equivalent to / (3 * 255) but faster
+
+            // Apply pure color tint with brightness masking
             data[i] = (tintR * brightness) | 0; // Bitwise OR for faster integer conversion
             data[i + 1] = (tintG * brightness) | 0; // Bitwise OR for faster integer conversion
             data[i + 2] = (tintB * brightness) | 0; // Bitwise OR for faster integer conversion
@@ -437,7 +448,13 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
                     const secondPolyline = frameAnnotations[1].points;
                     console.log('processWarping: Processing polygons');
 
-                    const warpedImageUrl = createWarpedImage(rawCanvas, firstPolyline, secondPolyline, overlayColor);
+                    const warpedImageUrl = createWarpedImage(
+                        rawCanvas,
+                        firstPolyline,
+                        secondPolyline,
+                        overlayColor,
+                        invertColors,
+                    );
                     console.log('processWarping: Warped image created');
                     setWarpedResult(warpedImageUrl);
                 } else {
@@ -452,7 +469,7 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
             console.error('processWarping: Error:', error);
             setWarpedResult(null);
         }
-    }, [annotations, frame, getRawCanvasImage, canvasInstance, overlayColor]);
+    }, [annotations, frame, getRawCanvasImage, canvasInstance, overlayColor, invertColors]);
 
     // No complex debounced update needed with simple image element approach
 
@@ -870,6 +887,24 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
                                                             padding: '0',
                                                         }}
                                                     />
+                                                </div>
+
+                                                {/* Invert toggle */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                    <button
+                                                        onClick={() => setInvertColors(!invertColors)}
+                                                        style={{
+                                                            background: invertColors ? '#f0f0f0' : '#666',
+                                                            color: invertColors ? '#000' : '#fff',
+                                                            border: 'none',
+                                                            padding: '2px 8px',
+                                                            fontSize: '10px',
+                                                            cursor: 'pointer',
+                                                            borderRadius: '3px',
+                                                        }}
+                                                    >
+                                                        {invertColors ? 'Invert: ON' : 'Invert: OFF'}
+                                                    </button>
                                                 </div>
                                             </>
                                         )}
