@@ -93,7 +93,7 @@ services:
   cvat_ui:
     build:
       context: .
-      dockerfile: Dockerfile.ui
+      dockerfile: Dockerfile.ui.dev
     volumes:
       - ./:/tmp/
     environment:

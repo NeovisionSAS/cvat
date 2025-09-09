@@ -26,6 +26,14 @@ import { usePrevious } from 'utils/hooks';
 import EventRecorder from 'utils/event-recorder';
 import { readLatestFrame } from 'utils/remember-latest-frame';
 import { EventScope } from 'cvat-core/src/enums';
+import Slider from 'antd/lib/slider';
+import Select from 'antd/lib/select';
+import Switch from 'antd/lib/switch';
+import Typography from 'antd/lib/typography';
+import { ColorPicker } from 'antd';
+import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
+import { OverlayProvider, useOverlayContext } from 'components/annotation-page/overlay-context';
+// import OverlayControls from 'components/annotation-page/top-bar/overlay-controls';
 import SearchFramesModal from './top-bar/search-modal';
 
 interface Props {
@@ -41,10 +49,8 @@ interface Props {
 }
 
 export default function AnnotationPageComponent(props: Props): JSX.Element {
-    const {
-        job, fetching, annotationsInitialized, workspace, frameNumber,
-        getJob, closeJob, saveLogs, changeFrame,
-    } = props;
+    const { job, fetching, annotationsInitialized, workspace, frameNumber, getJob, closeJob, saveLogs, changeFrame } =
+        props;
     const prevJob = usePrevious(job);
     const prevFetching = usePrevious(fetching);
 
@@ -76,7 +82,8 @@ export default function AnnotationPageComponent(props: Props): JSX.Element {
         if (prevFetching && !fetching && !prevJob && job) {
             const latestFrame = readLatestFrame(job.id);
 
-            if (typeof latestFrame === 'number' &&
+            if (
+                typeof latestFrame === 'number' &&
                 latestFrame !== frameNumber &&
                 latestFrame >= job.startFrame &&
                 latestFrame <= job.stopFrame
@@ -116,9 +123,7 @@ export default function AnnotationPageComponent(props: Props): JSX.Element {
                             {`${job.projectId ? 'Project' : 'Task'} ${
                                 job.projectId || job.taskId
                             } does not contain any label. `}
-                            <a href={`/${job.projectId ? 'projects' : 'tasks'}/${job.projectId || job.taskId}/`}>
-                                Add
-                            </a>
+                            <a href={`/${job.projectId ? 'projects' : 'tasks'}/${job.projectId || job.taskId}/`}>Add</a>
                             {' the first one for editing annotation.'}
                         </span>
                     ),
@@ -144,10 +149,87 @@ export default function AnnotationPageComponent(props: Props): JSX.Element {
     }
 
     return (
+        <OverlayProvider>
+            <AnnotationPageContent workspace={workspace} />
+            <FiltersModalComponent />
+            <StatisticsModalComponent />
+            <SearchFramesModal />
+        </OverlayProvider>
+    );
+}
+
+function OverlayControls(): JSX.Element {
+    const {
+        overlayVisible,
+        setOverlayVisible,
+        overlayOpacity,
+        setOverlayOpacity,
+        overlayColor,
+        setOverlayColor,
+        invertColors,
+        setInvertColors,
+        warpType,
+        setWarpType,
+    } = useOverlayContext();
+
+    return (
+        <div
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'rgba(255, 255, 255, 0.9)',
+                padding: '8px 20px',
+                borderBottom: '1px solid #e8e8e8',
+                fontSize: '12px',
+            }}
+        >
+            <Typography.Text style={{ fontWeight: 'bold' }}>Overlay:</Typography.Text>
+            <Switch
+                size='small'
+                checkedChildren={<EyeOutlined />}
+                unCheckedChildren={<EyeInvisibleOutlined />}
+                checked={overlayVisible}
+                onChange={setOverlayVisible}
+            />
+            <Typography.Text>Opacity:</Typography.Text>
+            <Slider
+                style={{ width: '100px' }}
+                min={0}
+                max={100}
+                step={5}
+                value={overlayOpacity}
+                onChange={setOverlayOpacity}
+            />
+            <Typography.Text>Color:</Typography.Text>
+            <ColorPicker
+                value={overlayColor}
+                onChangeComplete={(color) => setOverlayColor(color.toHexString())}
+                size='small'
+                showText
+            />
+            <Switch
+                size='small'
+                checkedChildren='Invert'
+                unCheckedChildren='Normal'
+                checked={invertColors}
+                onChange={setInvertColors}
+            />
+            <Select size='small' value={warpType} onChange={setWarpType} style={{ width: '120px' }}>
+                <Select.Option value='homography'>Homography</Select.Option>
+                <Select.Option value='tps'>TPS</Select.Option>
+            </Select>
+        </div>
+    );
+}
+
+function AnnotationPageContent({ workspace }: { workspace: Workspace }): JSX.Element {
+    return (
         <Layout className='cvat-annotation-page'>
             <Layout.Header className='cvat-annotation-header'>
                 <AnnotationTopBarContainer />
             </Layout.Header>
+            <OverlayControls />
             <Layout.Content className='cvat-annotation-layout-content'>
                 {workspace === Workspace.STANDARD3D && <StandardWorkspace3DComponent />}
                 {workspace === Workspace.STANDARD && <StandardWorkspaceComponent />}
@@ -156,9 +238,6 @@ export default function AnnotationPageComponent(props: Props): JSX.Element {
                 {workspace === Workspace.TAGS && <TagAnnotationWorkspace />}
                 {workspace === Workspace.REVIEW && <ReviewAnnotationsWorkspace />}
             </Layout.Content>
-            <FiltersModalComponent />
-            <StatisticsModalComponent />
-            <SearchFramesModal />
         </Layout>
     );
 }
