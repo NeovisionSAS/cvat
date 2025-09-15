@@ -37,7 +37,7 @@ services:
   cvat_db:
     container_name: cvat_db
     image: postgres:15-alpine
-    restart: no
+    restart: always
     environment:
       POSTGRES_USER: root
       POSTGRES_DB: cvat
@@ -50,7 +50,7 @@ services:
   cvat_redis_inmem:
     container_name: cvat_redis_inmem
     image: redis:7.2.3-alpine
-    restart: no
+    restart: always
     command: ['redis-server', '--save', '60', '100', '--appendonly', 'yes']
     volumes:
       - cvat_inmem_db:/data
@@ -60,7 +60,7 @@ services:
   cvat_redis_ondisk:
     container_name: cvat_redis_ondisk
     image: apache/kvrocks:2.12.1
-    restart: no
+    restart: always
     # The kvrocks image a) has a healthcheck command, and b) has a root process
     # that doesn't reap children, so it's susceptible to the problem described here:
     # <https://stackoverflow.com/a/77109064>. Kvrocks also uses a tiny timeout for
@@ -76,7 +76,7 @@ services:
   cvat_server:
     container_name: cvat_server
     image: cvat/server:${CVAT_VERSION:-v2.41.0}
-    restart: no
+    restart: always
     depends_on:
       <<: *backend-deps
       cvat_opa:
@@ -110,7 +110,7 @@ services:
   cvat_worker_utils:
     container_name: cvat_worker_utils
     image: cvat/server:${CVAT_VERSION:-v2.41.0}
-    restart: no
+    restart: always
     depends_on: *backend-deps
     environment:
       <<: *backend-env
@@ -127,7 +127,7 @@ services:
   cvat_worker_import:
     container_name: cvat_worker_import
     image: cvat/server:${CVAT_VERSION:-v2.41.0}
-    restart: no
+    restart: always
     depends_on: *backend-deps
     environment:
       <<: *backend-env
@@ -143,7 +143,7 @@ services:
   cvat_worker_export:
     container_name: cvat_worker_export
     image: cvat/server:${CVAT_VERSION:-v2.41.0}
-    restart: no
+    restart: always
     depends_on: *backend-deps
     environment:
       <<: [*backend-env, *clickhouse-env]
@@ -159,7 +159,7 @@ services:
   cvat_worker_annotation:
     container_name: cvat_worker_annotation
     image: cvat/server:${CVAT_VERSION:-v2.41.0}
-    restart: no
+    restart: always
     depends_on: *backend-deps
     environment:
       <<: *backend-env
@@ -175,7 +175,7 @@ services:
   cvat_worker_webhooks:
     container_name: cvat_worker_webhooks
     image: cvat/server:${CVAT_VERSION:-v2.41.0}
-    restart: no
+    restart: always
     depends_on: *backend-deps
     environment:
       <<: *backend-env
@@ -191,7 +191,7 @@ services:
   cvat_worker_quality_reports:
     container_name: cvat_worker_quality_reports
     image: cvat/server:${CVAT_VERSION:-v2.41.0}
-    restart: no
+    restart: always
     depends_on: *backend-deps
     environment:
       <<: *backend-env
@@ -207,7 +207,7 @@ services:
   cvat_worker_chunks:
     container_name: cvat_worker_chunks
     image: cvat/server:${CVAT_VERSION:-v2.41.0}
-    restart: no
+    restart: always
     depends_on: *backend-deps
     environment:
       <<: *backend-env
@@ -223,7 +223,7 @@ services:
   cvat_worker_consensus:
     container_name: cvat_worker_consensus
     image: cvat/server:${CVAT_VERSION:-v2.41.0}
-    restart: no
+    restart: always
     depends_on: *backend-deps
     environment:
       <<: *backend-env
@@ -240,7 +240,7 @@ services:
     container_name: cvat_ui
     build:
       dockerfile: Dockerfile.ui
-    restart: no
+    restart: always
     depends_on:
       - cvat_server
     labels:
@@ -254,7 +254,7 @@ services:
   traefik:
     image: traefik:v3.3
     container_name: traefik
-    restart: no
+    restart: always
     ports:
       - 8080:8080
       - 8090:8090
@@ -304,7 +304,7 @@ services:
   cvat_opa:
     container_name: cvat_opa
     image: openpolicyagent/opa:0.63.0
-    restart: no
+    restart: always
     networks:
       cvat:
         aliases:
@@ -322,7 +322,7 @@ services:
   cvat_clickhouse:
     container_name: cvat_clickhouse
     image: clickhouse/clickhouse-server:23.11-alpine
-    restart: no
+    restart: always
     environment:
       <<: *clickhouse-env
     networks:
@@ -336,7 +336,7 @@ services:
   cvat_vector:
     container_name: cvat_vector
     image: timberio/vector:0.26.0-alpine
-    restart: no
+    restart: always
     depends_on:
       - cvat_clickhouse
     environment:
@@ -350,7 +350,7 @@ services:
 
   cvat_grafana:
     image: grafana/grafana-oss:10.1.2
-    restart: no
+    restart: always
     container_name: cvat_grafana
     environment:
       <<: *clickhouse-env
