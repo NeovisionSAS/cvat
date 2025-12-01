@@ -628,8 +628,7 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
             const dstMat = cv.matFromArray(numPoints, 1, cv.CV_32FC2, dstPoints);
             const mask = new cv.Mat();
 
-            // Use default method (0) for small number of points, RANSAC for larger sets
-            const method = numPoints > 4 ? cv.RANSAC : 0;
+            const method = 0;
             console.log('Homography V2 - Computing homography with method:', method);
 
             const H = cv.findHomography(srcMat, dstMat, method, 3, mask);
