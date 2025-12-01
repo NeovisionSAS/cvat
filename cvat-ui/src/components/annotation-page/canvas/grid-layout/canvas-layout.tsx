@@ -45,6 +45,7 @@ import CVATTooltip from 'components/common/cvat-tooltip';
 import { useUpdateEffect } from 'utils/hooks';
 import defaultLayout, { ItemLayout, ViewType } from './canvas-layout.conf';
 import { TPS } from 'transformation-models';
+import openCVWrapper from 'utils/opencv-wrapper/opencv-wrapper';
 
 const ReactGridLayout = WidthProvider(RGL);
 
@@ -159,13 +160,11 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
     const job = useSelector((state: CombinedState) => state.annotation.job.instance);
 
     // Use overlay context for shared state
-    const { overlayVisible, overlayOpacity, overlayColor, invertColors, warpType } = useOverlayContext();
+    const { overlayVisible, overlayOpacity, overlayColor, invertColors, warpType, warpedResult, setWarpedResult } =
+        useOverlayContext();
 
     // Convert opacity from 0-100 scale to 0-1 scale for processing
     const overlayOpacityFloat = overlayOpacity / 100;
-
-    // Local state for warped result
-    const [warpedResult, setWarpedResult] = useState<string | null>(null);
 
     // Get clean image without annotations from the displayed canvas
     const getRawCanvasImage = useCallback(async (): Promise<HTMLCanvasElement | null> => {
@@ -481,7 +480,7 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
     // --- End helpers ---
 
     // Homography-based warping (centroid alignment)
-    const homography = (
+    const homographyV1 = (
         canvasElement: HTMLCanvasElement,
         firstPolyline: number[],
         secondPolyline: number[],
@@ -543,10 +542,10 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
         warpedCanvas.height = canvasElement.height;
 
         warpedCtx.drawImage(rightCanvas, 0, 0);
-        console.log('Homography - Drew right canvas as base');
+        console.log('Homography V1 - Drew right canvas as base');
 
         const processedLeft = processImageData(leftCanvas, tintColor, shouldInvert);
-        console.log('Homography - Processed left image with tint:', tintColor, 'invert:', shouldInvert);
+        console.log('Homography V1 - Processed left image with tint:', tintColor, 'invert:', shouldInvert);
 
         warpedCtx.save();
         warpedCtx.globalCompositeOperation = 'screen';
@@ -554,9 +553,139 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
         warpedCtx.scale(scaleX, scaleY);
         warpedCtx.drawImage(processedLeft, 0, 0);
         warpedCtx.restore();
-        console.log('Homography - Drew processed left image over right base with screen blend mode');
+        console.log('Homography V1 - Drew processed left image over right base with screen blend mode');
 
         return warpedCanvas.toDataURL();
+    };
+
+    // Homography V2 (OpenCV based)
+    const homographyV2 = async (
+        canvasElement: HTMLCanvasElement,
+        firstPolyline: number[],
+        secondPolyline: number[],
+        tintColor: string = '#00ff00',
+        shouldInvert: boolean = true,
+    ): Promise<string> => {
+        console.log('Homography V2 - Starting (Async Wrapper)');
+        console.log('Homography V2 - Input points count:', firstPolyline.length / 2);
+
+        if (!openCVWrapper.isInitialized) {
+            console.log('Homography V2 - Initializing OpenCV...');
+            try {
+                await openCVWrapper.initialize(() => {});
+            } catch (e) {
+                console.error('Homography V2 - Failed to initialize OpenCV:', e);
+                return '';
+            }
+        }
+
+        // Access global OpenCV instance initialized by opencv-wrapper
+        const cv = openCVWrapper.cvInternal;
+        if (!cv) {
+            console.error('Homography V2 - OpenCV (openCVWrapper.cvInternal) not available');
+            return '';
+        }
+
+        const ctx = canvasElement.getContext('2d')!;
+        const halfWidth = canvasElement.width / 2;
+
+        // Split image
+        const leftCanvas = document.createElement('canvas');
+        const rightCanvas = document.createElement('canvas');
+        const leftCtx = leftCanvas.getContext('2d')!;
+        const rightCtx = rightCanvas.getContext('2d')!;
+
+        leftCanvas.width = halfWidth;
+        rightCanvas.width = halfWidth;
+        leftCanvas.height = canvasElement.height;
+        rightCanvas.height = canvasElement.height;
+
+        leftCtx.putImageData(ctx.getImageData(0, 0, halfWidth, canvasElement.height), 0, 0);
+        rightCtx.putImageData(ctx.getImageData(halfWidth, 0, halfWidth, canvasElement.height), 0, 0);
+
+        // Prepare points for OpenCV
+        const srcPoints = [];
+        const dstPoints = [];
+        for (let i = 0; i < firstPolyline.length; i += 2) {
+            srcPoints.push(firstPolyline[i], firstPolyline[i + 1]);
+            dstPoints.push(secondPolyline[i] - halfWidth, secondPolyline[i + 1]);
+        }
+
+        console.log('Homography V2 - Src Points:', srcPoints);
+        console.log('Homography V2 - Dst Points:', dstPoints);
+
+        if (srcPoints.length < 8) {
+            // Need at least 4 points (8 coords)
+            console.error('Homography V2 - Need at least 4 points');
+            return '';
+        }
+
+        try {
+            const numPoints = srcPoints.length / 2;
+
+            // Use matFromArray from global cv
+            const srcMat = cv.matFromArray(numPoints, 1, cv.CV_32FC2, srcPoints);
+            const dstMat = cv.matFromArray(numPoints, 1, cv.CV_32FC2, dstPoints);
+            const mask = new cv.Mat();
+
+            // Use default method (0) for small number of points, RANSAC for larger sets
+            const method = numPoints > 4 ? cv.RANSAC : 0;
+            console.log('Homography V2 - Computing homography with method:', method);
+
+            const H = cv.findHomography(srcMat, dstMat, method, 3, mask);
+
+            if (H.empty()) {
+                console.error('Homography V2 - Failed to find homography (H is empty)');
+                srcMat.delete();
+                dstMat.delete();
+                mask.delete();
+                H.delete();
+                return '';
+            }
+
+            console.log('Homography V2 - Homography found');
+
+            const processedLeft = processImageData(leftCanvas, tintColor, shouldInvert);
+            const src = cv.imread(processedLeft);
+            const dst = new cv.Mat();
+            const dsize = new cv.Size(halfWidth, canvasElement.height);
+
+            cv.warpPerspective(src, dst, H, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+
+            // Create result canvas
+            const warpedCanvas = document.createElement('canvas');
+            const warpedCtx = warpedCanvas.getContext('2d')!;
+            warpedCanvas.width = halfWidth;
+            warpedCanvas.height = canvasElement.height;
+
+            // Draw right canvas as base
+            warpedCtx.drawImage(rightCanvas, 0, 0);
+
+            // Draw warped left image
+            const warpedLeftCanvas = document.createElement('canvas');
+            warpedLeftCanvas.width = halfWidth;
+            warpedLeftCanvas.height = canvasElement.height;
+            cv.imshow(warpedLeftCanvas, dst);
+
+            warpedCtx.save();
+            warpedCtx.globalCompositeOperation = 'screen';
+            warpedCtx.drawImage(warpedLeftCanvas, 0, 0);
+            warpedCtx.restore();
+
+            // Cleanup
+            srcMat.delete();
+            dstMat.delete();
+            mask.delete();
+            H.delete();
+            src.delete();
+            dst.delete();
+
+            console.log('Homography V2 - Completed successfully');
+            return warpedCanvas.toDataURL();
+        } catch (e) {
+            console.error('Homography V2 - Error:', e);
+            return '';
+        }
     };
 
     // TPS (Thin Plate Spline) warping for accurate point-to-point deformation
@@ -787,7 +916,7 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
         secondPolyline: number[],
         tintColor: string = '#00ff00',
         shouldInvert: boolean = true,
-        transformType: 'homography' | 'tps' = 'tps',
+        transformType: 'homography-v1' | 'homography-v2' | 'tps' = 'tps',
     ): Promise<string> => {
         console.log(
             'createWarpedImage: Starting with',
@@ -805,8 +934,10 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
         );
         console.log('createWarpedImage: Tint color:', tintColor, 'Invert:', shouldInvert);
 
-        if (transformType === 'homography') {
-            return homography(canvasElement, firstPolyline, secondPolyline, tintColor, shouldInvert);
+        if (transformType === 'homography-v1') {
+            return homographyV1(canvasElement, firstPolyline, secondPolyline, tintColor, shouldInvert);
+        } else if (transformType === 'homography-v2') {
+            return homographyV2(canvasElement, firstPolyline, secondPolyline, tintColor, shouldInvert);
         } else {
             return await tps(canvasElement, firstPolyline, secondPolyline, tintColor, shouldInvert);
         }
@@ -911,8 +1042,9 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
                         } right points from directional polylines`,
                     );
 
-                    if (leftPoints.length >= 6 && rightPoints.length >= 6) {
-                        // Need at least 3 point pairs for warping
+                    const minPoints = warpType === 'homography-v2' ? 8 : 6; // 4 pairs vs 3 pairs
+                    if (leftPoints.length >= minPoints && rightPoints.length >= minPoints) {
+                        // Need at least minPoints for warping
                         const warpedImageUrl = await createWarpedImage(
                             rawCanvas,
                             leftPoints,
@@ -932,7 +1064,11 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
                         }
                         return;
                     } else {
-                        console.log('processWarping: Need at least 3 point pairs (6 points) on each side for warping');
+                        console.log(
+                            `processWarping: Need at least ${
+                                minPoints / 2
+                            } point pairs (${minPoints} points) on each side for warping`,
+                        );
                     }
                 }
 
@@ -950,7 +1086,7 @@ function CanvasLayout({ type }: { type?: DimensionType }): JSX.Element {
             console.error('processWarping: Error:', error);
             setWarpedResult(null);
         }
-    }, [annotations, frame, getRawCanvasImage, canvasInstance, overlayColor, invertColors, warpType]);
+    }, [annotations, frame, getRawCanvasImage, canvasInstance, overlayColor, invertColors, warpType, setWarpedResult]);
 
     // No complex debounced update needed with simple image element approach
 

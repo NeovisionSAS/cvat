@@ -15,23 +15,31 @@ module.exports = (env) => {
 
     const sourceMapsDisabled = (process.env.DISABLE_SOURCE_MAPS || 'false').toLocaleLowerCase() === 'true';
     const appConfigFile = process.env.UI_APP_CONFIG ? process.env.UI_APP_CONFIG : defaultAppConfig;
-    const pluginsList = process.env.CLIENT_PLUGINS ? [...defaultPlugins, ...process.env.CLIENT_PLUGINS.split(':')]
-        .map((s) => s.trim()).filter((s) => !!s) : defaultPlugins;
+    const pluginsList = process.env.CLIENT_PLUGINS
+        ? [...defaultPlugins, ...process.env.CLIENT_PLUGINS.split(':')].map((s) => s.trim()).filter((s) => !!s)
+        : defaultPlugins;
     const sourceMapsToken = process.env.SOURCE_MAPS_TOKEN || '';
 
     const transformedPlugins = pluginsList
-        .filter((plugin) => !!plugin).reduce((acc, _path, index) => ({
-            ...acc,
-            [`plugin_${index}`]: {
-                dependOn: 'cvat-ui',
-                // path can be absolute, in this case it is accepted as is
-                // also the path can be relative to cvat-ui root directory
-                import: path.isAbsolute(_path) ? _path : path.join(__dirname, _path, 'src', 'ts', 'index.tsx'),
-            },
-        }), {});
+        .filter((plugin) => !!plugin)
+        .reduce(
+            (acc, _path, index) => ({
+                ...acc,
+                [`plugin_${index}`]: {
+                    dependOn: 'cvat-ui',
+                    // path can be absolute, in this case it is accepted as is
+                    // also the path can be relative to cvat-ui root directory
+                    import: path.isAbsolute(_path) ? _path : path.join(__dirname, _path, 'src', 'ts', 'index.tsx'),
+                },
+            }),
+            {},
+        );
 
     console.log('Source maps: ', sourceMapsDisabled ? 'disabled' : 'enabled');
-    console.log('List of plugins: ', Object.values(transformedPlugins).map((plugin) => plugin.import));
+    console.log(
+        'List of plugins: ',
+        Object.values(transformedPlugins).map((plugin) => plugin.import),
+    );
 
     const host = process.env.CVAT_UI_HOST ?? 'localhost';
     const port = process.env.CVAT_UI_PORT ?? 3000;
@@ -66,18 +74,20 @@ module.exports = (env) => {
                 'Cross-Origin-Opener-Policy': 'same-origin',
                 'Cross-Origin-Embedder-Policy': 'credentialless',
             },
-            proxy: [{
-                context: (param) =>
-                    param.match(
-                        /\/api\/.*|analytics\/.*|static\/.*|admin(?:\/(.*))?.*|profiler(?:\/(.*))?.*|documentation\/.*|django-rq(?:\/(.*))?/gm,
-                    ),
-                target: env && env.API_URL,
-                secure: false,
-                changeOrigin: true,
-                onProxyReq: (proxyReq) => {
-                    proxyReq.setHeader('X-FORWARDED-HOST', `${host}:${port}`);
+            proxy: [
+                {
+                    context: (param) =>
+                        param.match(
+                            /\/api\/.*|analytics\/.*|static\/.*|admin(?:\/(.*))?.*|profiler(?:\/(.*))?.*|documentation\/.*|django-rq(?:\/(.*))?/gm,
+                        ),
+                    target: env && env.API_URL,
+                    secure: false,
+                    changeOrigin: true,
+                    onProxyReq: (proxyReq) => {
+                        proxyReq.setHeader('X-FORWARDED-HOST', `${host}:${port}`);
+                    },
                 },
-            }],
+            ],
         },
         resolve: {
             extensions: ['.tsx', '.ts', '.jsx', '.js', '.json'],
@@ -134,11 +144,7 @@ module.exports = (env) => {
                             loader: 'postcss-loader',
                             options: {
                                 postcssOptions: {
-                                    plugins: [
-                                        [
-                                            'postcss-preset-env', {},
-                                        ],
-                                    ],
+                                    plugins: [['postcss-preset-env', {}]],
                                 },
                             },
                         },
@@ -187,26 +193,30 @@ module.exports = (env) => {
                     },
                     {
                         from: '../node_modules/onnxruntime-web/dist/*.wasm',
-                        to  : 'assets/[name][ext]',
+                        to: 'assets/[name][ext]',
                     },
                     {
                         from: 'src/assets/opencv_4.8.0.js',
-                        to  : 'assets/opencv_4.8.0.js',
+                        to: 'assets/opencv_4.8.0.js',
                     },
                     {
                         from: 'src/assets/*.png',
-                        to  : 'assets/[name][ext]',
+                        to: 'assets/[name][ext]',
                     },
                     {
                         from: 'plugins/**/assets/*.(onnx|js)',
-                        to  : 'assets/[name][ext]',
-                    }
+                        to: 'assets/[name][ext]',
+                    },
                 ],
             }),
-            ...(!sourceMapsDisabled && sourceMapsToken ? [new webpack.SourceMapDevToolPlugin({
-                append: '\n',
-                filename: `${sourceMapsToken}/[file].map`,
-            })] : []),
+            ...(!sourceMapsDisabled && sourceMapsToken
+                ? [
+                      new webpack.SourceMapDevToolPlugin({
+                          append: '\n',
+                          filename: `${sourceMapsToken}/[file].map`,
+                      }),
+                  ]
+                : []),
         ],
-    }
+    };
 };

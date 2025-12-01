@@ -215,8 +215,9 @@ function OverlayControls(): JSX.Element {
                 checked={invertColors}
                 onChange={setInvertColors}
             />
-            <Select size='small' value={warpType} onChange={setWarpType} style={{ width: '120px' }}>
-                <Select.Option value='homography'>Homography</Select.Option>
+            <Select size='small' value={warpType} onChange={setWarpType} style={{ width: '150px' }}>
+                <Select.Option value='homography-v1'>Homography v1</Select.Option>
+                <Select.Option value='homography-v2'>Homography v2</Select.Option>
                 <Select.Option value='tps'>TPS</Select.Option>
             </Select>
         </div>

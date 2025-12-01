@@ -90,8 +90,9 @@ const OverlayControls: React.FC = () => {
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Text style={{ fontSize: '12px' }}>Warp:</Text>
-                        <Select size='small' value={warpType} onChange={setWarpType} style={{ width: '100px' }}>
-                            <Option value='homography'>Homography</Option>
+                        <Select size='small' value={warpType} onChange={setWarpType} style={{ width: '140px' }}>
+                            <Option value='homography-v1'>Homography v1</Option>
+                            <Option value='homography-v2'>Homography v2</Option>
                             <Option value='tps'>TPS</Option>
                         </Select>
                     </div>

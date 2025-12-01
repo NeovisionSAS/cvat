@@ -273,12 +273,14 @@ export class OpenCVWrapper {
             try {
                 const contours = this.contours.findContours(src, false);
                 if (contours.length) {
-                    return contours.map((contour) => contour.map((val, idx) => {
-                        if (idx % 2) {
-                            return val + top;
-                        }
-                        return val + left;
-                    }));
+                    return contours.map((contour) =>
+                        contour.map((val, idx) => {
+                            if (idx % 2) {
+                                return val + top;
+                            }
+                            return val + left;
+                        }),
+                    );
                 }
                 throw new Error('Empty contour received from state');
             } finally {
@@ -326,6 +328,10 @@ export class OpenCVWrapper {
                 kind: 'opencv_tracker_mil',
             },
         };
+    }
+
+    public get cvInternal(): any {
+        return this.cv;
     }
 }
 

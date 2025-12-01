@@ -13,8 +13,10 @@ interface OverlayContextType {
     setOverlayColor: (color: string) => void;
     invertColors: boolean;
     setInvertColors: (invert: boolean) => void;
-    warpType: 'homography' | 'tps';
-    setWarpType: (type: 'homography' | 'tps') => void;
+    warpType: 'homography-v1' | 'homography-v2' | 'tps';
+    setWarpType: (type: 'homography-v1' | 'homography-v2' | 'tps') => void;
+    warpedResult: string | null;
+    setWarpedResult: (result: string | null) => void;
 }
 
 const OverlayContext = createContext<OverlayContextType | undefined>(undefined);
@@ -36,7 +38,8 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
     const [overlayOpacity, setOverlayOpacity] = useState(90); // 0-100 scale for UI
     const [overlayColor, setOverlayColor] = useState('#00ff00');
     const [invertColors, setInvertColors] = useState(true);
-    const [warpType, setWarpType] = useState<'homography' | 'tps'>('tps');
+    const [warpType, setWarpType] = useState<'homography-v1' | 'homography-v2' | 'tps'>('homography-v2');
+    const [warpedResult, setWarpedResult] = useState<string | null>(null);
 
     const value = {
         overlayVisible,
@@ -49,6 +52,8 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
         setInvertColors,
         warpType,
         setWarpType,
+        warpedResult,
+        setWarpedResult,
     };
 
     return <OverlayContext.Provider value={value}>{children}</OverlayContext.Provider>;

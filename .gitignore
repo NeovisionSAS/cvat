@@ -8,6 +8,7 @@
 /logs
 /profiles
 /yarn--*
+/v8-*
 
 # Ignore temporary files
 docker-compose.override.yml
