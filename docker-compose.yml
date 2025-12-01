@@ -252,7 +252,7 @@ services:
       - cvat
 
   traefik:
-    image: traefik:v3.3
+    image: traefik:v2.11
     container_name: traefik
     restart: always
     ports:
