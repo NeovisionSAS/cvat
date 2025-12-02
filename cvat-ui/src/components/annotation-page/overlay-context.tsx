@@ -38,7 +38,7 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
     const [overlayOpacity, setOverlayOpacity] = useState(90); // 0-100 scale for UI
     const [overlayColor, setOverlayColor] = useState('#00ff00');
     const [invertColors, setInvertColors] = useState(true);
-    const [warpType, setWarpType] = useState<'homography-v1' | 'homography-v2' | 'tps'>('homography-v2');
+    const [warpType, setWarpType] = useState<'homography-v1' | 'homography-v2' | 'tps'>('tps');
     const [warpedResult, setWarpedResult] = useState<string | null>(null);
 
     const value = {
